@@ -40,7 +40,11 @@ func main() {
   tile := New_Vector_Tile(bytevals) // this is your tile structure  
   layermap := tile.ToGeoJSON(tileid) // this is your layer map map[string][]*geojson.Feature
 }
-
-
-
 ```
+
+# Caveats 
+
+I am by no means guaranteeing this is faster for parsing vector-tiles then older methods I already use, in fact theres a good chance that will end up happening this is just an experiment I guess. 
+
+
+
