@@ -9,8 +9,8 @@ import (
 	m "github.com/murphy214/mercantile"
 )
 
-var bytevals,_ =  ioutil.ReadFile("test_data/14-8801-5371.vector.pbf")
-var tileid = m.TileID{1143,1497,12}
+var bytevals,_ =  ioutil.ReadFile("test_data/9-12-5.pbf")
+var tileid = m.TileID{9,12,5}
 
 
 // benchamrks every new vector tile

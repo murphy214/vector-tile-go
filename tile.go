@@ -33,13 +33,12 @@ func (vt Vector_Tile) ToGeoJSON(tileid m.TileID) map[string][]*geojson.Feature {
 	totalmap := map[string][]*geojson.Feature{}
 	// going through each layer
 	for k,v := range vt {
-		newlist := make([]*geojson.Feature,v.Number_Features)
+		totalmap[k] = make([]*geojson.Feature,v.Number_Features)
 		i := 0
 		for i < v.Number_Features {
-			newlist[i] = v.Feature(i).ToGeoJSON(tileid)
+			totalmap[k][i] = v.Feature(i).ToGeoJSON(tileid)
 			i++
 		}
-		totalmap[k] = newlist
 	}
 	return totalmap
 }
