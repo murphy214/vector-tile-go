@@ -46,5 +46,12 @@ func main() {
 
 I am by no means guaranteeing this is faster for parsing vector-tiles then older methods I already use, in fact theres a good chance that will end up happening this is just an experiment I guess. 
 
+# Analysis Against Previous Implementation
+
+I'm doing a little statistical analysis against an mbtiles qa set from mapbox, against the times ToGeoJSON verses my previous mbtiles-util implmentation, and while I it looks like 90% of the time it is slower than previous, the times it is faster are so large, that the total amount of time spent of each is lower with the new implmentation. However is it enough to justify implementing this? 
+
+This module has a few advantages over the others:
+  * its self contained no protobuf or vector_tile pb.go file required, which can get annoying with importing from go
+  * more importantly the access to lower level stuff it gives, I'm sure there will be situations where I need to feature level manipulations or statististics. (see structure above)
 
 
