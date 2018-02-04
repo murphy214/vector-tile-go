@@ -63,6 +63,7 @@ func DecodeVarint(buf []byte) (x uint64, n int) {
 // a much faster key integration (microseconds to nanoseconds)
 // returns the value number and key number for a given byte
 func Key(x byte) (byte, byte) {
+	//fmt.Printf("%08b\n",x)
 	val := x >> 3
 
 	// if the x value has a value in the 8 place
@@ -147,13 +148,23 @@ func ReadInt64(bytes []byte) int64 {
 
 
 func (pbf *PBF) ReadKey() (byte,byte) {
-	key,val := Key(pbf.Pbf[pbf.Pos])
-	pbf.Pos += 1
+	var key,val byte
+	if pbf.Pos > pbf.Length - 1 {
+		key,val = 100,100
+	} else {
+		key,val = Key(pbf.Pbf[pbf.Pos])
+		pbf.Pos += 1
+
+	}
+
 	return key,val
 }
 
 
 func (pbf *PBF) ReadVarint() int {
+	if pbf.Pos + 1 >= pbf.Length {
+		return 0
+	}
 	startPos := pbf.Pos 
 	for pbf.Pbf[pbf.Pos] > 127 {
 		pbf.Pos += 1

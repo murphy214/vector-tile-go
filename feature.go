@@ -1,11 +1,14 @@
 package pbf
 
 import (
-	//"fmt"
+	"fmt"
 	"math"
 	m "github.com/murphy214/mercantile"
 	"github.com/paulmach/go.geojson"
 )
+func c() {
+    fmt.Println()
+}
 
 // a single feature
 type Feature struct {
@@ -24,6 +27,7 @@ func LayerFeature(feat_bytes *PBF,end int,keys []string,values []interface{}) *F
 
 	for feat_bytes.Pos < end {
 		key,val := feat_bytes.ReadKey()
+
 		// logic for handlign id
 		if key == 1 && val == 0 {
 			feat.Id = feat_bytes.ReadUInt64()
@@ -34,8 +38,13 @@ func LayerFeature(feat_bytes *PBF,end int,keys []string,values []interface{}) *F
             //fmt.Println(len(tags),len(values),len(keys),"dasdfa")
 			i := 0
 			for i < len(tags) {
-                //fmt.Println(i,tags[i],tags[i+1])
-                key := keys[tags[i]]
+                //fmt.Println(tags,keys,tags[i],tags[i+1])
+                var key string
+                if len(keys) <= int(tags[i]) {
+                    key = ""
+                } else {
+                    key = keys[tags[i]]
+                }
                 var val interface{}
                 if len(values) <= int(tags[i+1]) {
                     val = ""
@@ -55,9 +64,13 @@ func LayerFeature(feat_bytes *PBF,end int,keys []string,values []interface{}) *F
 			feat.Geometry = feat_bytes.Pos
 			size := feat_bytes.ReadVarint()
 			feat_bytes.Pos += size
-		}	
+		}
+        //fmt.Println(key,val,feat_bytes.Pos,end) 
+
 	}
-	feat.Buf = feat_bytes
+    //fmt.Println(feat_bytes.Pos,end,feat.Type) 
+	
+    feat.Buf = feat_bytes
 	return feat
 }
 
@@ -107,6 +120,9 @@ func (feature *Feature) LoadGeometryPoint(tileid m.TileID) *geojson.Geometry {
             
             line = append(line,pt)
             //line.push(new Point(x, y));
+        }
+        if length < 0 && feature.Buf.Pos + 1 == end {
+            feature.Buf.Pos += 1
         }
     }
 
@@ -161,6 +177,10 @@ func (feature *Feature) LoadGeometryLine(tileid m.TileID) *geojson.Geometry {
             
             line = append(line,pt)
             //line.push(new Point(x, y));
+        }
+        //fmt.Println(length,feature.Buf.Pos,end)
+        if length < 0 && feature.Buf.Pos + 1 == end {
+            feature.Buf.Pos += 1
         }
     }
     if len(line) > 0 {
@@ -231,6 +251,9 @@ func (feature *Feature) LoadGeometryPolygon(tileid m.TileID) *geojson.Geometry {
             }
 
         }
+        if length < 0 && feature.Buf.Pos + 1 == end {
+            feature.Buf.Pos += 1
+        }    
     }   
 
     for i := range polygons {
