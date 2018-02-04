@@ -31,13 +31,13 @@ package main
 
 import (
   "io/ioutil"
-  "github.com/murphy214/vector-tile-go"
+  vt "github.com/murphy214/vector-tile-go"
 )
 
 func main() {
   bytevals,_ :=  ioutil.ReadFile("test_data/9-12-5.pbf")
   tileid := m.TileID{9,12,5}
-  tile := New_Vector_Tile(bytevals) // this is your tile structure  
+  tile := vt.New_Vector_Tile(bytevals) // this is your tile structure  
   layermap := tile.ToGeoJSON(tileid) // this is your layer map map[string][]*geojson.Feature
 }
 ```
