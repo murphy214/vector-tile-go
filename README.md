@@ -26,7 +26,7 @@ ok  	github.com/murphy214/vector-tile-go	7.673s
 I added one more structure to the endpoint of the Vector_Tile being ToGeoJSON() that accepts a tileid. In the mapbox's version this can only be done at the feature level. 
 
 
-```
+```golang
 package main
 
 import (
