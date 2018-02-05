@@ -4,7 +4,7 @@ An implementation of mapbox's vector-tile-js library for reading vector tiles la
 
 # What is it 
 
-This repo is essentially a read version of [this] is pretty well close to being implemented in the same way. Basically it reads vector-tiles lazily allowing for faster reading period (hopefully). Benchmarks are kind of all over the place its either about the same speed or like twice as fast depending on the size of your tile etc. For example here are benchmarks with one of the faster test examples. 
+This repo is essentially a read version of [this](https://github.com/mapbox/vector-tile-js) is pretty well close to being implemented in the same way. Basically it reads vector-tiles lazily allowing for faster reading period (hopefully). Benchmarks are kind of all over the place its either about the same speed or like twice as fast depending on the size of your tile etc. For example here are benchmarks with one of the faster test examples. 
 
 The first two benchmarks are just reading the Vector_Tile into a lazy structure (what this repo does) and the other is serializing it from a raw protobuf. As you can see its quite a bit faster in that regard. The second two benchmarks pertain to convertinhsig from a vector tile represention to a geojson representation. 
 
