@@ -1,6 +1,9 @@
 # vector-tile-go
 An implementation of mapbox's vector-tile-js library for reading vector tiles lazily.
 
+# Updates
+
+Recently a went down a rabbit hole to track down lack of performance in tile-reduce one of my other repos and I noticed this being the case no matter what vector-tile reader I used. Anyway much performance profiling with pprof / escape analysis of code later I've reduced allocations dramatically. The problem was I used a lot of methods on structs to create my vector tile and when that occurs it leaves things to be held in memory much longer than needed. 
 
 # What is it 
 
