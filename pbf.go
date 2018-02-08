@@ -288,7 +288,44 @@ func (pbf *PBF) ReadBool() bool {
 	return false
 }
 
+func (pbf *PBF) ReadPacked() []uint32 {
 
+	endpos := pbf.Pos + pbf.ReadVarint()
+	//fmt.Println(pbf.Pbf[pbf.Pos])
+	// potential uint32 values
+	//fmt.Println(endpos)
+	vals := make([]uint32,pbf.Length)
+	currentpos := 0
+	//fmt.Println(uint32(byte(32)))
+	for pbf.Pos < endpos {
+		startpos := pbf.Pos
+
+		for pbf.Pbf[pbf.Pos] > 127 {
+			pbf.Pos += 1
+		}
+		pbf.Pos += 1
+
+		switch pbf.Pos - startpos {
+
+		case 1:
+			vals[currentpos] = uint32(pbf.Pbf[startpos])
+			currentpos += 1
+		//} else if startpos - startpos == 2 {
+		case 2:
+			vals[currentpos] = (uint32(pbf.Pbf[startpos])) | (uint32(pbf.Pbf[startpos+1]) << 8)
+			currentpos += 1
+		//} else if startpos - startpos == 3 {
+		case 3:
+			vals[currentpos] = (uint32(pbf.Pbf[startpos])) | (uint32(pbf.Pbf[startpos+1]) << 8) | (uint32(pbf.Pbf[startpos+2]) << 16)
+			currentpos += 1
+		//} else if startpos - startpos == 4 {
+		case 4:
+			vals[currentpos] = (uint32(pbf.Pbf[startpos])) | (uint32(pbf.Pbf[startpos+1]) << 8) | (uint32(pbf.Pbf[startpos+2]) << 16) + (uint32(pbf.Pbf[startpos+3]) * 0x1000000)
+			currentpos += 1
+		} 		
+	}
+	return vals[:currentpos]
+}
 
 
 func (pbf *PBF) ReadPackedUInt32() []uint32 {
