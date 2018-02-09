@@ -87,6 +87,7 @@ func (layer Layer) Feature(pos int,tileid m.TileID) *geojson.Feature {
             },
         Properties:map[string]interface{}{},
     }
+    feature.Extent = layer.Extent
     // setting up feature
 
     for feature.Buf.Pos < feature.Buf.Length {
@@ -190,6 +191,7 @@ func (layer Layer) Feature(pos int,tileid m.TileID) *geojson.Feature {
         feature.Buf.Pos = feature.Geometry
 
         end := feature.Buf.ReadVarint() + feature.Buf.Pos
+        fmt.Printf("%#v\n",feature.Buf.Pbf[feature.Buf.Pos:end])
         cmd,length,x,y := 0,0,0.0,0.0
         line := [][]float64{}
         lines := [][][]float64{}
@@ -199,6 +201,7 @@ func (layer Layer) Feature(pos int,tileid m.TileID) *geojson.Feature {
         for feature.Buf.Pos < end {
             if length == 0 {
                 cmdLen = feature.Buf.ReadVarint();
+                fmt.Println(cmdLen)
                 cmd = cmdLen & 0x7
                 length = cmdLen >> 3
             }
@@ -207,6 +210,8 @@ func (layer Layer) Feature(pos int,tileid m.TileID) *geojson.Feature {
             if (cmd == 1 || cmd == 2) {
                 x += feature.Buf.ReadSVarint()
                 y += feature.Buf.ReadSVarint()
+                fmt.Println(x)
+                fmt.Println(y)
                 pt = []float64{x,y}
 
                 if (cmd == 1) && len(line) > 0 { // moveTo

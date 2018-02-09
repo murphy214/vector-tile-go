@@ -120,6 +120,7 @@ func ReadInt32(buf []byte) int32 {
 	return int32(0)
 }
 
+
 func ReadUInt32(buf []byte) uint32 {
 	if len(buf) == 4 {
     	return uint32(((int(buf[0])) | (int(buf[1]) << 8) | (int(buf[2]) << 16)) + (int(buf[3]) * 0x1000000))
@@ -132,6 +133,7 @@ func ReadUInt32(buf []byte) uint32 {
 	}
 	return uint32(0)
 }
+
 
 // reads a uint64 from a list of bytes
 func ReadUint64(bytes []byte) uint64 {
