@@ -1,5 +1,5 @@
 # vector-tile-go
-An implementation of mapbox's vector-tile-js library for reading vector tiles lazily.
+An implementation of mapbox's vector-tile spec for reading vector tiles lazily.
 
 # Introduction
 
