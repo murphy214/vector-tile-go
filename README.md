@@ -13,11 +13,11 @@ An implementation of mapbox's vector tile spec from with no protobuf file needed
 
 * Writes vector tile layers that can be appended to an existing vector tile byte array (this is just as useful than just supporting the full spec my api just handles one layer at a time)
 
-* Reads to geojson are 30% faster than a regular proto implementation\
+* **Reads to geojson are 30% faster than a regular proto implementation**
 
-* Writes from geojson are 130% faster than regular proto implmentation
+* **Writes from geojson are 130% faster than regular proto implmentation**
 
-* Lazy reads that can be used to map each from tile structure are 70% faster than the protobuf implementation (i.e. marshaling the tile) 
+* **Lazy reads are 70% faster than the protobuf implementation (i.e. marshaling the tile)**
 
 # Usage 
 
