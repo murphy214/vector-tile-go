@@ -3,12 +3,12 @@ package vt
 import (
 	//"io/ioutil"
 	//"fmt"
-	"bytes"
-	"encoding/binary"
 	"fmt"
+	"math"
 	//"vector-tile/2.1"
 	//"github.com/golang/protobuf/proto"
 )
+
 
 // 
 type PBF struct {
@@ -237,6 +237,7 @@ func ReadInt64(bytes []byte) int64 {
 
 
 func (pbf *PBF) ReadKey() (byte,byte) {
+	
 	var key,val byte
 	if pbf.Pos > pbf.Length - 1 {
 		key,val = 100,100
@@ -245,23 +246,32 @@ func (pbf *PBF) ReadKey() (byte,byte) {
 		pbf.Pos += 1
 
 	}
-
-	return key,val
+	return key,val	
+	//pbf.Pos += 1
+	//return Key(pbf.Pbf[pbf.Pos-1])
 }
 
 
 func (pbf *PBF) ReadVarint() int {
+
 	if pbf.Pos + 1 >= pbf.Length {
 		if pbf.Pos + 1 == pbf.Length {
 			pbf.Pos += 1
 		}
 		return 0
 	}
+	if pbf.Pbf[pbf.Pos] <= 127 {
+		pbf.Pos += 1
+		return int(pbf.Pbf[pbf.Pos-1])
+	}
 	startPos := pbf.Pos 
 	for pbf.Pbf[pbf.Pos] > 127 {
 		pbf.Pos += 1
 	}
 	pbf.Pos += 1
+	//if pbf.Pos - startPos == 1 {
+	//	return int(pbf.Pbf[startPos])
+	//}
 	return int(DecodeVarint(pbf.Pbf[startPos:pbf.Pos]))
 }
 
@@ -274,6 +284,7 @@ func (pbf *PBF) ReadSVarint() float64 {
 	}
 	return float64(0)
 }
+
 
 // var int bytes
 func (pbf *PBF) Varint() []byte {
@@ -335,27 +346,16 @@ func (pbf *PBF) ReadInt64() int64 {
 }
 
 
-func (pbf *PBF) ReadFloat() float32 {
-	var pi32 float32
-	buf := bytes.NewReader(pbf.Pbf[pbf.Pos:pbf.Pos+4])
-	err := binary.Read(buf, binary.LittleEndian, &pi32)
-	if err != nil {
-		fmt.Println("binary.Read failed:", err)
-	}
-	pbf.Pos += 4
-	return pi32
+func (pbf *PBF) ReadDouble() float64 {
+	a := pbf.Pos
+	pbf.Pos += 8
+	return math.Float64frombits(uint64(pbf.Pbf[a]) | uint64(pbf.Pbf[a+1])<<8 | uint64(pbf.Pbf[a+2])<<16 | uint64(pbf.Pbf[a+3])<<24 | uint64(pbf.Pbf[a+4])<<32 | uint64(pbf.Pbf[a+5])<<40 | uint64(pbf.Pbf[a+6])<<48 | uint64(pbf.Pbf[a+7])<<56)
 }
 
-// reading a double
-func (pbf *PBF) ReadDouble() float64 {
-	var pi32 float64
-	buf := bytes.NewReader(pbf.Pbf[pbf.Pos:pbf.Pos+8])
-	err := binary.Read(buf, binary.LittleEndian, &pi32)
-	if err != nil {
-		fmt.Println("binary.Read failed:", err)
-	}
-	pbf.Pos += 8
-	return pi32
+func (pbf *PBF) ReadFloat() float32 {
+	a := pbf.Pos
+	pbf.Pos += 4
+	return math.Float32frombits(uint32(pbf.Pbf[a]) | uint32(pbf.Pbf[a+1])<<8 | uint32(pbf.Pbf[a+2])<<16 | uint32(pbf.Pbf[a+3])<<24)
 }
 
 func (pbf *PBF) ReadString() string {
@@ -366,15 +366,12 @@ func (pbf *PBF) ReadString() string {
 }
 
 func (pbf *PBF) ReadBool() bool {
-	//pbf.Byte()
 
-	//size := pbf.ReadVarint()
-	buf := pbf.Pbf[pbf.Pos:pbf.Pos+1]
-	pbf.Pos += 1
-
-	if buf[0] == 1 {
+	if pbf.Pbf[pbf.Pos] == 1 {
+		pbf.Pos += 1
 		return true
-	} else if buf[0] == 0 {
+	} else {
+		pbf.Pos += 1
 		return false
 	}
 	return false
@@ -452,11 +449,12 @@ func (pbf *PBF) ReadPackedUInt32_2() []uint32 {
 
 func (pbf *PBF) Byte() {
 	fmt.Println(pbf.Pbf[pbf.Pos],"current")
-	fmt.Println(pbf.Pbf[pbf.Pos-5:pbf.Pos+5],"next5")
+	fmt.Println(pbf.Pbf[pbf.Pos:pbf.Pos+5],"next5")
 }
 
-
-
+func Reverse(val []byte) []byte {
+	return []byte{val[7],val[6],val[5],val[4],val[3],val[2],val[1],val[0]}
+}
 
 
 

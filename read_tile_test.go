@@ -21,7 +21,7 @@ func Benchmark_New_Vector_Tile(b *testing.B) {
 
         // run the Fib function b.N times
         for n := 0; n < b.N; n++ {
-         	New_Tile(bytevals) 	
+         	NewTile(bytevals) 	
         }
 }
 
@@ -44,7 +44,7 @@ func Benchmark_New_Vector_Tile_Geojson(b *testing.B) {
 
         // run the Fib function b.N times
         for n := 0; n < b.N; n++ {
-         	Read_Tile(bytevals,tileid)
+         	ReadTile(bytevals,tileid)
         }
 }
 
@@ -71,7 +71,7 @@ func Benchmark_New_Vector_Tile_Geojson_1(b *testing.B) {
 
     // run the Fib function b.N times
     for n := 0; n < b.N; n++ {
-        Read_Tile(bytevals,tileid)
+        ReadTile(bytevals,tileid)
     }
 }
 
@@ -100,7 +100,7 @@ func Benchmark_New_Vector_Tile_Geojson_2(b *testing.B) {
 
     // run the Fib function b.N times
     for n := 0; n < b.N; n++ {
-        Read_Tile(bytevals,tileid)
+        ReadTile(bytevals,tileid)
     }
 }
 
@@ -130,7 +130,7 @@ func Benchmark_New_Vector_Tile_Geojson_3(b *testing.B) {
 
     // run the Fib function b.N times
     for n := 0; n < b.N; n++ {
-        Read_Tile(bytevals,tileid)
+        ReadTile(bytevals,tileid)
     }
 }
 
@@ -162,7 +162,7 @@ func Benchmark_New_Vector_Tile_Geojson_4(b *testing.B) {
 
     // run the Fib function b.N times
     for n := 0; n < b.N; n++ {
-        Read_Tile(bytevals,tileid)
+        ReadTile(bytevals,tileid)
     }
 }
 
@@ -193,7 +193,7 @@ func Benchmark_New_Vector_Tile_Geojson_5(b *testing.B) {
 
     // run the Fib function b.N times
     for n := 0; n < b.N; n++ {
-        Read_Tile(bytevals,tileid)
+        ReadTile(bytevals,tileid)
     }
 }
 
@@ -281,7 +281,7 @@ func Benchmark_All(b *testing.B) {
 
         for n := 0; n < b.N; n++ {
                 for k,bytevals := range byte_array {
-                        Read_Tile(bytevals,k)       
+                        ReadTile(bytevals,k)       
                 }
         }
 }
