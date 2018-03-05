@@ -2,6 +2,7 @@ package vt
 
 import (
 	m "github.com/murphy214/mercantile"
+	g "github.com/murphy214/geobuf"
 	"github.com/paulmach/go.geojson"
 	//"fmt"
 )
@@ -141,7 +142,7 @@ func WriteLayer(features []*geojson.Feature,config Config) []byte {
 
 	// appending extra config values
 	if mylayer.Extent != 4096 {
-		total_bytes = append(total_bytes,5)
+		total_bytes = append(total_bytes,40)
 		total_bytes = append(total_bytes,EncodeVarint(uint64(mylayer.Extent))...)
 	}
 	
@@ -153,4 +154,50 @@ func WriteLayer(features []*geojson.Feature,config Config) []byte {
 	return append(beg,total_bytes...)
 }
 
+// creates a layer outright using a configuration and a set of features
+// this is the outermost function that should be used
+// the outer functions is wrapped like this to reduce allocations
+// if it was used as method it could cause leaks which I'll have to check 
+// later via escape analysis
+func WriteLayerGeobuf(buf *g.Reader,config Config) []byte {
+	// creating layer
+	mylayer := NewLayerConfig(config)
+
+	// adding features
+	for buf.Next() {
+		mylayer.AddFeatureGeobuf(buf.Bytes())
+	}
+
+	// creating total_bytes
+	total_bytes := []byte{}
+
+	// writing name
+	if len(mylayer.Name) > 0 {
+		total_bytes = append(total_bytes,10)
+		total_bytes = append(total_bytes,EncodeVarint(uint64(len(mylayer.Name)))...)
+		total_bytes = append(total_bytes,[]byte(mylayer.Name)...)
+	}
+	
+	// appending features
+	total_bytes = append(total_bytes,mylayer.Features...)
+
+	// appending keys 
+	total_bytes = append(total_bytes,mylayer.Keys_Bytes...)
+
+	// appending values 
+	total_bytes = append(total_bytes,mylayer.Values_Bytes...)
+
+	// appending extra config values
+	if mylayer.Extent != 4096 {
+		total_bytes = append(total_bytes,40)
+		total_bytes = append(total_bytes,EncodeVarint(uint64(mylayer.Extent))...)
+	}
+	
+	//if mylayer.Version != 0 {
+	total_bytes = append(total_bytes,120)
+	total_bytes = append(total_bytes,byte(mylayer.Version))
+	//}
+	beg := append([]byte{26},EncodeVarint(uint64(len(total_bytes)))...)
+	return append(beg,total_bytes...)
+}
 
