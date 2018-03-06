@@ -4,6 +4,7 @@ package vt
 import (
 	"math"
 	"reflect"
+	"github.com/murphy214/pbf"
 )
  
 
@@ -53,7 +54,7 @@ func WritePackedUint32(geom []uint32) []byte {
 		buf[pos] = uint8(x)
 		pos++
 	}
-	beg := EncodeVarint(uint64(pos-8))
+	beg := pbf.EncodeVarint(uint64(pos-8))
 	startpos := 8 - len(beg)
 	currentpos := startpos
 	i := 0
@@ -66,7 +67,7 @@ func WritePackedUint32(geom []uint32) []byte {
 	return buf[startpos:pos]
 }
 
-
+const maxVarintBytes = 10
 // encodes are var int value
 func EncodeVarint_Value(x uint64,typeint int) []byte {
 	var buf [maxVarintBytes]byte
@@ -118,11 +119,11 @@ func WriteValue(value interface{}) []byte {
 	case reflect.String:
 		if len(vv.String()) > 0 {	
 			size := uint64(len(vv.String()))
-			size_bytes := EncodeVarint(size)
+			size_bytes := pbf.EncodeVarint(size)
 			bytevals := []byte{10}
 			bytevals = append(bytevals,size_bytes...)
 			bytevals = append(bytevals,[]byte(vv.String())...)
-			bytevals = append(EncodeVarint(uint64(len(bytevals))),bytevals...)
+			bytevals = append(pbf.EncodeVarint(uint64(len(bytevals))),bytevals...)
 			return append([]byte{34},bytevals...)
 		}
 	case reflect.Float32:

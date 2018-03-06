@@ -5,6 +5,8 @@ import (
     "github.com/paulmach/go.geojson"
      m "github.com/murphy214/mercantile"
      "math"
+    "github.com/murphy214/pbf"
+
 )
 
 type Feature struct {
@@ -13,7 +15,7 @@ type Feature struct {
     Properties map[string]interface{}
     geometry_pos int
     extent int
-    Buf *PBF
+    Buf *pbf.PBF
 }
 
 func (layer *Layer) Feature() *Feature {
@@ -86,8 +88,8 @@ func (feature *Feature) LoadGeometry() *geojson.Geometry {
      case "Point":
 
         feature.Buf.Pos = feature.geometry_pos
-
         end := feature.Buf.ReadVarint() + feature.Buf.Pos
+
         cmd,length,x,y := 0,0,0.0,0.0
         line := [][]float64{}
         var pt []float64
@@ -211,6 +213,9 @@ func (feature *Feature) LoadGeometry() *geojson.Geometry {
                 }
 
             }
+        }
+        if len(line) > 0 {
+            polygons = append(polygons,[][][]float64{line})
         }
 
         if len(polygons) == 1 {

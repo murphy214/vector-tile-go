@@ -4,7 +4,9 @@ import (
 	"github.com/paulmach/go.geojson"
 	"reflect"
 	//"fmt"
-	"github.com/murphy214/geobuf/geobuf_raw"
+	//"github.com/murphy214/geobuf/geobuf_raw"
+   	p "github.com/murphy214/pbf"
+
 )
 
 // adding a geojson feature to a given layer
@@ -22,7 +24,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		switch kd {
 		case reflect.Int,reflect.Int8,reflect.Int16,reflect.Int32,reflect.Int64,reflect.Uint,reflect.Uint8,reflect.Uint16,reflect.Uint32,reflect.Uint64:
 			array3 = []byte{8}
-			array4 = EncodeVarint(uint64(vv.Int()))
+			array4 = p.EncodeVarint(uint64(vv.Int()))
 		}
 	}
 	
@@ -74,7 +76,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		}
 	}
 	array1 = []byte{18}
-	array2 = EncodeVarint(uint64(len(array3)+len(array4)+len(array5)+len(array6)+len(array7)+len(array8)+len(array9)))
+	array2 = p.EncodeVarint(uint64(len(array3)+len(array4)+len(array5)+len(array6)+len(array7)+len(array8)+len(array9)))
 	layer.Features = append(layer.Features,AppendAll(array1,array2,array3,array4,array5,array6,array7,array8,array9)...)
 }
 
@@ -83,9 +85,9 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 // this function house's both the ingestion and output to vector tiles
 // hopefully to reduce allocations
 func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
-	
+	boolval := false
 	// the pbf representing a feauture
-	pbf := geobuf_raw.PBF{Pbf:bytevals,Length:len(bytevals)}
+	pbf := p.PBF{Pbf:bytevals,Length:len(bytevals)}
 	
 	// creating total bytes that holds the bytes for a given layer
 	var array1,array2,array3,array4,array5,array6,array7,array8,array9 []byte
@@ -179,6 +181,7 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		array7 = []byte{24,geomtypeb}
 	}
 	if key == 4 && val == 2 {
+		boolval = true
 		size := pbf.ReadVarint()
 		endpos := pbf.Pos + size
 
@@ -210,7 +213,9 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		}
 		key,val = pbf.ReadKey()
 	}
-	array1 = []byte{18}
-	array2 = EncodeVarint(uint64(len(array3)+len(array4)+len(array5)+len(array6)+len(array7)+len(array8)+len(array9)))
-	layer.Features = append(layer.Features,AppendAll(array1,array2,array3,array4,array5,array6,array7,array8,array9)...)
+	if boolval {
+		array1 = []byte{18}
+		array2 = p.EncodeVarint(uint64(len(array3)+len(array4)+len(array5)+len(array6)+len(array7)+len(array8)+len(array9)))
+		layer.Features = append(layer.Features,AppendAll(array1,array2,array3,array4,array5,array6,array7,array8,array9)...)
+	}
 }

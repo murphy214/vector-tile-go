@@ -4,6 +4,8 @@ import (
 	m "github.com/murphy214/mercantile"
 	g "github.com/murphy214/geobuf"
 	"github.com/paulmach/go.geojson"
+   "github.com/murphy214/pbf"
+
 	//"fmt"
 )
 
@@ -65,7 +67,7 @@ func NewLayerConfig(config Config) LayerWrite {
 // adds a single key to a given layer 
 func (layer *LayerWrite) AddKey(key string) uint32 {
 	layer.Keys_Bytes = append(layer.Keys_Bytes,26)
-	layer.Keys_Bytes = append(layer.Keys_Bytes,EncodeVarint(uint64(len(key)))...)
+	layer.Keys_Bytes = append(layer.Keys_Bytes,pbf.EncodeVarint(uint64(len(key)))...)
 	layer.Keys_Bytes = append(layer.Keys_Bytes,[]byte(key)...)
 	myint := uint32(len(layer.Keys_Map))
 	layer.Keys_Map[key] = myint
@@ -127,7 +129,7 @@ func WriteLayer(features []*geojson.Feature,config Config) []byte {
 	// writing name
 	if len(mylayer.Name) > 0 {
 		total_bytes = append(total_bytes,10)
-		total_bytes = append(total_bytes,EncodeVarint(uint64(len(mylayer.Name)))...)
+		total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(len(mylayer.Name)))...)
 		total_bytes = append(total_bytes,[]byte(mylayer.Name)...)
 	}
 	
@@ -143,14 +145,14 @@ func WriteLayer(features []*geojson.Feature,config Config) []byte {
 	// appending extra config values
 	if mylayer.Extent != 4096 {
 		total_bytes = append(total_bytes,40)
-		total_bytes = append(total_bytes,EncodeVarint(uint64(mylayer.Extent))...)
+		total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(mylayer.Extent))...)
 	}
 	
 	//if mylayer.Version != 0 {
 	total_bytes = append(total_bytes,120)
 	total_bytes = append(total_bytes,byte(mylayer.Version))
 	//}
-	beg := append([]byte{26},EncodeVarint(uint64(len(total_bytes)))...)
+	beg := append([]byte{26},pbf.EncodeVarint(uint64(len(total_bytes)))...)
 	return append(beg,total_bytes...)
 }
 
@@ -174,7 +176,7 @@ func WriteLayerGeobuf(buf *g.Reader,config Config) []byte {
 	// writing name
 	if len(mylayer.Name) > 0 {
 		total_bytes = append(total_bytes,10)
-		total_bytes = append(total_bytes,EncodeVarint(uint64(len(mylayer.Name)))...)
+		total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(len(mylayer.Name)))...)
 		total_bytes = append(total_bytes,[]byte(mylayer.Name)...)
 	}
 	
@@ -190,14 +192,14 @@ func WriteLayerGeobuf(buf *g.Reader,config Config) []byte {
 	// appending extra config values
 	if mylayer.Extent != 4096 {
 		total_bytes = append(total_bytes,40)
-		total_bytes = append(total_bytes,EncodeVarint(uint64(mylayer.Extent))...)
+		total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(mylayer.Extent))...)
 	}
 	
 	//if mylayer.Version != 0 {
 	total_bytes = append(total_bytes,120)
 	total_bytes = append(total_bytes,byte(mylayer.Version))
 	//}
-	beg := append([]byte{26},EncodeVarint(uint64(len(total_bytes)))...)
+	beg := append([]byte{26},pbf.EncodeVarint(uint64(len(total_bytes)))...)
 	return append(beg,total_bytes...)
 }
 

@@ -3,6 +3,7 @@ package vt
 import (
     "math"
     "github.com/paulmach/go.geojson"
+   
 )
 
 
@@ -69,6 +70,7 @@ func (tile *Tile) Feature(layername string,keys []string,values []interface{},ex
         tile.Buf.Pos = feature_geometry
 
         end := tile.Buf.ReadVarint() + tile.Buf.Pos
+
         cmd,length,x,y := 0,0,0.0,0.0
         line := [][]float64{}
         var pt []float64
@@ -214,6 +216,11 @@ func (tile *Tile) Feature(layername string,keys []string,values []interface{},ex
 
             }
         }
+
+        if len(line) > 0 && len(polygons) ==  0{
+            polygons = append(polygons,[][][]float64{line})
+        }
+
 
         for i := range polygons {
             for j := range polygons[i] {

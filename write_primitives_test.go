@@ -3,6 +3,8 @@ package vt
 import (
 	"testing"
 	//"fmt"
+   	"github.com/murphy214/pbf"
+
 )
 
 
@@ -24,7 +26,7 @@ func TestWriteValue(t *testing.T) {
 
 func TestEncodeVarint(t *testing.T) {
 	expected_bytevals := []byte{0xe8, 0x1}
-	bytevals := EncodeVarint(232)
+	bytevals := pbf.EncodeVarint(232)
 	for i := range bytevals {
 		if bytevals[i] != expected_bytevals[i] {
 			t.Errorf("EncodeVarint Error")

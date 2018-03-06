@@ -4,12 +4,13 @@ package vt
 import (
 	m "github.com/murphy214/mercantile"
    "github.com/paulmach/go.geojson"
+   "github.com/murphy214/pbf"
 )
 
 // upper vector tile structure
 type Tile struct{
 	LayerMap map[string]*Layer
-	Buf *PBF
+	Buf *pbf.PBF
 	TileID m.TileID
 }
 
@@ -18,7 +19,7 @@ func NewTile(bytevals []byte) *Tile {
 	// creating vector tile
 	tile := &Tile{
 		LayerMap:map[string]*Layer{},
-		Buf:&PBF{Pbf:bytevals,Length:len(bytevals)},
+		Buf:&pbf.PBF{Pbf:bytevals,Length:len(bytevals)},
 	}
 	for tile.Buf.Pos < tile.Buf.Length {
 		key,val := tile.Buf.ReadKey()

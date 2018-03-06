@@ -3,6 +3,9 @@ package vt
 import (
 	//"fmt"
 	//"github.com/paulmach/go.geojson"
+
+   "github.com/murphy214/pbf"
+
 	// m "github.com/murphy214/mercantile"
 )
 
@@ -19,7 +22,7 @@ type Layer struct {
 	StartPos int
 	EndPos int
 	feature_position int
-	Buf *PBF
+	Buf *pbf.PBF
 }
 
 
