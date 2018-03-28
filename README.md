@@ -1,5 +1,6 @@
 # vector-tile-go
-An implementation of mapbox's vector-tile spec for reading vector tiles lazily.
+
+An implementation of mapbox's vector-tile spec for reading / writing vector tiles lazily.
 
 # Introduction
 
@@ -13,7 +14,7 @@ An implementation of mapbox's vector tile spec from with no protobuf file needed
 
 * Writes vector tile layers that can be appended to an existing vector tile byte array (this is just as useful than just supporting the full spec my api just handles one layer at a time)
 
-* **Reads to geojson are 30% faster than a regular proto implementation**
+* **Reads to geojson are 40% faster than a regular proto implementation**
 
 * **Writes from geojson are 130% faster than regular proto implmentation**
 
