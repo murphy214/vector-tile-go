@@ -18,6 +18,7 @@ type Feature struct {
     Buf *pbf.PBF
 }
 
+// reads a feature lazily 
 func (layer *Layer) Feature() *Feature {
 
     layer.Buf.Pos = layer.features[layer.feature_position]

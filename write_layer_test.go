@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"github.com/golang/protobuf/proto"
+	"github.com/murphy214/mbtiles-util/vector-tile/2.1"
 	m "github.com/murphy214/mercantile"
 	"github.com/paulmach/go.geojson"
 	"io/ioutil"
@@ -20,8 +22,52 @@ var config = NewConfig("mylayer", tileidval)
 func TestWriteLayer(t *testing.T) {
 	config := NewConfig("testing", m.TileID{0, 0, 0})
 	bytevals := WriteLayer(fc.Features, config)
+	tile1 := &vector_tile.Tile{}
+	tile2 := &vector_tile.Tile{}
+
+	err := proto.Unmarshal(bytevals, tile1)
+	if err != nil {
+		t.Errorf("", err)
+	}
+
+	err = proto.Unmarshal(tile_expected, tile2)
+	if err != nil {
+		t.Errorf("", err)
+	}
+	// checking to see if byte values are the same size
 	if len(tile_expected) != len(bytevals) {
 		t.Errorf("writelayer test failed %d %d", len(tile_expected), len(bytevals))
+	} else {
+		if len(tile1.Layers) != len(tile2.Layers) {
+			t.Errorf("writelayer test failed %d %d", len(tile1.Layers), len(tile2.Layers))
+		} else {
+			for i := range tile1.Layers {
+				layer1, layer2 := tile1.Layers[i], tile2.Layers[i]
+				if *layer1.Name != *layer2.Name {
+					t.Errorf("writelayer test failed %s %s", *layer1.Name, *layer2.Name)
+				}
+				if *layer1.Version != *layer2.Version {
+					t.Errorf("writelayer test failed %d %d", *layer1.Version, *layer2.Version)
+				}
+				//t.Errorf("%v %v", layer1.Extent, layer2.Extent)
+				if layer1.Extent != layer2.Extent {
+					t.Errorf("writelayer test failed %d %d", layer1.Extent, layer2.Extent)
+				}
+
+				if len(layer1.Keys) != len(layer2.Keys) {
+					t.Errorf("writelayer test failed %d %d", len(layer1.Keys), len(layer2.Keys))
+				}
+
+				if len(layer1.Values) != len(layer2.Values) {
+					t.Errorf("writelayer test failed %d %d", len(layer1.Values), len(layer2.Values))
+				}
+
+				if len(layer1.Features) != len(layer2.Features) {
+					t.Errorf("writelayer test failed %d %d", len(layer1.Features), len(layer2.Features))
+				}
+
+			}
+		}
 	}
 }
 
