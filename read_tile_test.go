@@ -5,11 +5,10 @@ import (
 	mbutil "github.com/murphy214/mbtiles-util"
 	"github.com/murphy214/mbtiles-util/vector-tile/2.1"
 	m "github.com/murphy214/mercantile"
+	"github.com/murphy214/pbf"
 	"io/ioutil"
 	"strings"
 	"testing"
-	//"fmt"
-	"github.com/murphy214/pbf"
 )
 
 var bytevals, _ = ioutil.ReadFile("test_data/701_1635_12.pbf")
@@ -231,6 +230,7 @@ func Benchmark_All_Proto(b *testing.B) {
 		}
 	}
 }
+
 
 func Benchmark_All(b *testing.B) {
 	b.ReportAllocs()
