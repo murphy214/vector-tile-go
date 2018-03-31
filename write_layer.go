@@ -11,23 +11,27 @@ import (
 // the defualt layer structure from a layer
 type LayerWrite struct {
 	TileID       m.TileID // the tile id associated with the layer
-	Name         string   // the name associated with the layer
-	Extent       int      // extent will assume 4096 if 0
-	Version      int      // version number will assume 15 if 0
+	DeltaX       float64
+	DeltaY       float64
+	Name         string // the name associated with the layer
+	Extent       int    // extent will assume 4096 if 0
+	Version      int    // version number will assume 15 if 0
 	Keys_Map     map[string]uint32
 	Keys_Bytes   []byte                 // the byte value of keys
 	Values_Map   map[interface{}]uint32 // the values map
 	Values_Bytes []byte                 // the byte values of values
 	Features     []byte                 // the byte values of features
 	Cursor       *Cursor                // the cursor for adding geometries
+	ReduceBool   bool
 }
 
 // the configuration struct
 type Config struct {
-	TileID  m.TileID // the tile id associated with the layer
-	Name    string   // the name associated with the layer
-	Extent  int32    // extent will assume 4096 if 0
-	Version int      // version number will assume 15 if 0
+	TileID     m.TileID // the tile id associated with the layer
+	Name       string   // the name associated with the layer
+	Extent     int32    // extent will assume 4096 if 0
+	Version    int      // version number will assume 15 if 0
+	ReduceBool bool
 }
 
 // creates a new layer
@@ -54,13 +58,18 @@ func NewLayerConfig(config Config) LayerWrite {
 		config.Version = 2
 	}
 	cur := NewCursorExtent(config.TileID, config.Extent)
+	bds := m.Bounds(config.TileID)
 	return LayerWrite{TileID: config.TileID,
+		DeltaX:     bds.E - bds.W,
+		DeltaY:     bds.N - bds.S,
 		Keys_Map:   keys_map,
 		Values_Map: values_map,
 		Name:       config.Name,
 		Cursor:     cur,
 		Version:    config.Version,
-		Extent:     int(config.Extent)}
+		Extent:     int(config.Extent),
+		ReduceBool: config.ReduceBool,
+	}
 }
 
 // adds a single key to a given layer
@@ -106,6 +115,7 @@ func (layer *LayerWrite) RefreshCursor() {
 	layer.Cursor.Count = 0
 	layer.Cursor.LastPoint = []int32{0, 0}
 	layer.Cursor.Geometry = []uint32{}
+	layer.Cursor.Bds = startbds
 }
 
 // creates a layer outright using a configuration and a set of features
@@ -114,14 +124,27 @@ func (layer *LayerWrite) RefreshCursor() {
 // if it was used as method it could cause leaks which I'll have to check
 // later via escape analysis
 func WriteLayer(features []*geojson.Feature, config Config) []byte {
+	//
+	var reduce_config *Reduce_Config
+	if config.ReduceBool {
+		reduce_config = NewReduceConfig(config.TileID)
+	}
+
 	// creating layer
 	mylayer := NewLayerConfig(config)
 
-	// adding features
-	for _, feat := range features {
-		mylayer.AddFeature(feat)
+	if config.ReduceBool {
+		// adding features
+		for _, feat := range features {
+			if Filter(feat, reduce_config) {
+				mylayer.AddFeature(feat)
+			}
+		}
+	} else {
+		for _, feat := range features {
+			mylayer.AddFeature(feat)
+		}
 	}
-
 	// creating total_bytes
 	total_bytes := []byte{}
 

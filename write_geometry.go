@@ -10,43 +10,43 @@ import (
 const mercatorPole = 20037508.34
 
 type Cursor struct {
-	Geometry []uint32
+	Geometry  []uint32
 	LastPoint []int32
-	Bounds m.Extrema
-	DeltaX float64 // delta between bounds
-	DeltaY float64 // delta between bounds
-	Count uint32
-	Extent int32
+	Bounds    m.Extrema
+	DeltaX    float64 // delta between bounds
+	DeltaY    float64 // delta between bounds
+	Count     uint32
+	Extent    int32
+	Bds       m.Extrema
 }
+
+var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
 
 func NewCursor(tileid m.TileID) *Cursor {
 	bound := m.Bounds(tileid)
-	deltax := bound.E-bound.W
+	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
-	cur := Cursor{LastPoint:[]int32{0,0},Bounds:bound,DeltaX:deltax,DeltaY:deltay,Count:0,Extent:int32(4096)}
+	cur := Cursor{LastPoint: []int32{0, 0}, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: int32(4096), Bds: startbds}
 	cur = ConvertCursor(cur)
 	return &cur
 }
 
-
-func NewCursorExtent(tileid m.TileID,extent int32) *Cursor {
+func NewCursorExtent(tileid m.TileID, extent int32) *Cursor {
 	bound := m.Bounds(tileid)
-	deltax := bound.E-bound.W
+	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
-	cur := Cursor{LastPoint:[]int32{0,0},Bounds:bound,DeltaX:deltax,DeltaY:deltay,Count:0,Extent:extent}
+	cur := Cursor{LastPoint: []int32{0, 0}, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: extent, Bds: startbds}
 	cur = ConvertCursor(cur)
 	return &cur
 }
-
 
 func ConvertPoint(point []float64) []float64 {
 	x := mercatorPole / 180.0 * point[0]
 
 	y := math.Log(math.Tan((90.0+point[1])*math.Pi/360.0)) / math.Pi * mercatorPole
 	y = math.Max(-mercatorPole, math.Min(y, mercatorPole))
-	return []float64{x,y}
+	return []float64{x, y}
 }
-
 
 func cmdEnc(id uint32, count uint32) uint32 {
 	return (id & 0x7) | (count << 3)
@@ -66,7 +66,7 @@ func closePath(count uint32) uint32 {
 
 func paramEnc(value int32) int32 {
 	return (value << 1) ^ (value >> 31)
-}	
+}
 
 func (cur *Cursor) MovePoint(point []int32) {
 	cur.Geometry = append(cur.Geometry, moveTo(1))
@@ -76,8 +76,8 @@ func (cur *Cursor) MovePoint(point []int32) {
 }
 
 func (cur *Cursor) LinePoint(point []int32) {
-	deltax := point[0]-cur.LastPoint[0]
-	deltay := point[1]-cur.LastPoint[1]
+	deltax := point[0] - cur.LastPoint[0]
+	deltay := point[1] - cur.LastPoint[1]
 	if ((deltax == 0) && (deltay == 0)) == false {
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltax)))
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltay)))
@@ -86,7 +86,7 @@ func (cur *Cursor) LinePoint(point []int32) {
 	cur.LastPoint = point
 }
 
-// makes a line pretty neatly 
+// makes a line pretty neatly
 func (cur *Cursor) MakeLine(coords [][]int32) {
 	// applying the first move to point
 	startpos := len(cur.Geometry)
@@ -94,14 +94,14 @@ func (cur *Cursor) MakeLine(coords [][]int32) {
 	cur.Geometry = append(cur.Geometry, lineTo(uint32(len(coords)-1)))
 
 	// iterating through each point
-	for _,point := range coords[1:] {
+	for _, point := range coords[1:] {
 		cur.LinePoint(point)
 	}
 
 	cur.Geometry[startpos+3] = lineTo(cur.Count)
 }
 
-// makes a line pretty neatly 
+// makes a line pretty neatly
 func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	// applying the first move to point
 	startpos := len(cur.Geometry)
@@ -109,16 +109,15 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	cur.MovePoint(firstpoint)
 	cur.Geometry = append(cur.Geometry, lineTo(uint32(len(coords)-1)))
 	// iterating through each point
-	for _,point := range coords[1:] {
+	for _, point := range coords[1:] {
 		cur.LinePoint(cur.SinglePoint(point))
 	}
 
 	cur.Geometry[startpos+3] = lineTo(cur.Count)
-		
+
 	//return cur.Geometry
 
 }
-
 
 // reverses the coord list
 func reverse(coord [][]int32) [][]int32 {
@@ -163,7 +162,6 @@ func assert_winding_order(coord [][]int32, exp_orient string) [][]int32 {
 
 }
 
-
 // asserts a winding order
 func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	count := 0
@@ -175,7 +173,7 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	// iterating through each float point
 	for _, floatpt := range coord {
 		pt := cur.SinglePoint(floatpt)
-		newlist = append(newlist,pt)
+		newlist = append(newlist, pt)
 		if count == 0 {
 			count = 1
 		} else {
@@ -194,17 +192,16 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 
 	if orientation != exp_orient {
 		newlist = reverse(newlist)
-	} 
+	}
 
-	newcur := Cursor{LastPoint:cur.LastPoint,Bounds:cur.Bounds,DeltaX:cur.DeltaX,DeltaY:cur.DeltaY}
+	newcur := Cursor{LastPoint: cur.LastPoint, Bounds: cur.Bounds, DeltaX: cur.DeltaX, DeltaY: cur.DeltaY}
 	newcur.MakeLine(newlist)
 	newgeom := newcur.Geometry
-	newgeom = append(newgeom,closePath(1))
-	cur.Geometry = append(cur.Geometry,newgeom...)
+	newgeom = append(newgeom, closePath(1))
+	cur.Geometry = append(cur.Geometry, newgeom...)
 	cur.LastPoint = newlist[len(newlist)-1]
 
 }
-
 
 // makes a polygon
 func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
@@ -212,16 +209,16 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 	coord := coords[0]
 	coord = assert_winding_order(coord, "clockwise")
 	cur.MakeLine(coord)
-	cur.Geometry = append(cur.Geometry,cur.Geometry...)
-	cur.Geometry =  append(cur.Geometry, closePath(1))
+	cur.Geometry = append(cur.Geometry, cur.Geometry...)
+	cur.Geometry = append(cur.Geometry, closePath(1))
 
 	// if multiple rings exist proceed to add those also
 	if len(coords) > 1 {
-		for _,coord := range coords[1:] {
+		for _, coord := range coords[1:] {
 			coord = assert_winding_order(coord, "counter")
 			cur.MakeLine(coord)
-			cur.Geometry = append(cur.Geometry,cur.Geometry...)
-			cur.Geometry =  append(cur.Geometry, closePath(1))
+			cur.Geometry = append(cur.Geometry, cur.Geometry...)
+			cur.Geometry = append(cur.Geometry, closePath(1))
 
 		}
 	}
@@ -232,21 +229,30 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 // makes a polygon
 func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 	// applying the first ring
-	cur.AssertConvert(coords[0],"clockwise")
+	cur.AssertConvert(coords[0], "clockwise")
 
 	// if multiple rings exist proceed to add those also
 	if len(coords) > 1 {
-		for _,coord := range coords[1:] {
-			cur.AssertConvert(coord,"counter")
+		for _, coord := range coords[1:] {
+			cur.AssertConvert(coord, "counter")
 
 		}
 	}
 	//return cur.Geometry
 }
 
-
 // converts a single point from a coordinate to a tile point
 func (cur *Cursor) SinglePoint(point []float64) []int32 {
+	if cur.Bounds.N < point[1] {
+		cur.Bounds.N = point[1]
+	} else if cur.Bounds.S > point[1] {
+		cur.Bounds.S = point[1]
+	}
+	if cur.Bounds.E < point[0] {
+		cur.Bounds.E = point[0]
+	} else if cur.Bounds.W > point[0] {
+		cur.Bounds.W = point[0]
+	}
 	// converting to sperical coordinates
 	point = ConvertPoint(point)
 
@@ -284,23 +290,22 @@ func (cur *Cursor) MakePointFloat(point []float64) {
 
 }
 
-
 func (cur *Cursor) MakeMultiPointFloat(points [][]float64) {
-	cur.Geometry = []uint32{moveTo(uint32(len(points)))}	
-	for _,point := range points {
+	cur.Geometry = []uint32{moveTo(uint32(len(points)))}
+	for _, point := range points {
 		newpoint := cur.SinglePoint(point)
 		cur.LinePoint(newpoint)
 	}
 }
 
 func (cur *Cursor) MakeMultiLineFloat(lines [][][]float64) {
-	for _,line := range lines {
+	for _, line := range lines {
 		cur.MakeLineFloat(line)
 	}
 }
 
 func (cur *Cursor) MakeMultiPolygonFloat(lines [][][][]float64) {
-	for _,line := range lines {
+	for _, line := range lines {
 		cur.MakePolygonFloat(line)
 	}
 }
@@ -311,8 +316,8 @@ func ConvertCursor(cur Cursor) Cursor {
 	bounds := cur.Bounds
 
 	// getting ne point
-	en := []float64{bounds.E,bounds.N} // east, north point
-	ws := []float64{bounds.W,bounds.S} // west, south point
+	en := []float64{bounds.E, bounds.N} // east, north point
+	ws := []float64{bounds.W, bounds.S} // west, south point
 
 	// converting these
 	en = ConvertPoint(en)
@@ -323,7 +328,7 @@ func ConvertCursor(cur Cursor) Cursor {
 	north := en[1]
 	west := ws[0]
 	south := ws[1]
-	bounds = m.Extrema{N:north,E:east,S:south,W:west}
+	bounds = m.Extrema{N: north, E: east, S: south, W: west}
 
 	// getting deltax and deltay
 	deltax := east - west
@@ -335,4 +340,3 @@ func ConvertCursor(cur Cursor) Cursor {
 	cur.DeltaY = deltay
 	return cur
 }
-

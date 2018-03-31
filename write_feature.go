@@ -45,6 +45,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		}
 		array7 = []byte{24, geomtype}
 	}
+	var abort_bool bool
 	if feature.Geometry != nil {
 		switch feature.Geometry.Type {
 		case "Point":
@@ -54,6 +55,9 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		case "LineString":
 			array8 = []byte{34}
 			layer.Cursor.MakeLineFloat(feature.Geometry.LineString)
+			if layer.Cursor.Count == 1 {
+				abort_bool = true
+			}
 			array9 = WritePackedUint32(layer.Cursor.Geometry)
 		case "Polygon":
 			array8 = []byte{34}
@@ -74,9 +78,13 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 
 		}
 	}
-	array1 = []byte{18}
-	array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
-	layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+
+	// on the off chane one of my lines contains one point
+	if !abort_bool {
+		array1 = []byte{18}
+		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
+		layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+	}
 }
 
 // adding a geobuf byte array to a given layer
@@ -211,6 +219,14 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		}
 		key, val = pbf.ReadKey()
 	}
+	if layer.ReduceBool {
+		if (layer.Cursor.Bds.E-layer.Cursor.Bds.W)/layer.DeltaX > default_percentage || (layer.Cursor.Bds.N-layer.Cursor.Bds.S)/layer.DeltaY > default_percentage {
+
+		} else {
+			boolval = true
+		}
+	}
+
 	if boolval {
 		array1 = []byte{18}
 		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
