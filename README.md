@@ -1,12 +1,13 @@
 # vector-tile-go
+[![GoDoc](https://img.shields.io/badge/api-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/murphy214/vector-tile-go)
 
 An implementation of mapbox's vector-tile spec for reading / writing vector tiles lazily.
 
-# Introduction
+## Why?
 
-An implementation of mapbox's vector tile spec from with no protobuf file needed. Designed to reduce allocations and to be faster for reading / writing. 
+An implementation of mapbox's vector tile spec from with no protobuf file needed. Designed to reduce allocations and to be faster for reading / writing. When you think about how a vector tile is marshaled / unmarshaled from a regular protobuf implementation its kind of ridiculous, we transform (generally) geojson data into another entire feature struct with an entire new allocation for each, only to serialize that data structure to bytes immediately after. Thats really heavy, and unneeded allocations.
 
-# Features 
+## Features 
 
 * Reads vector tiles into layer map geojson with a tile id given
 
@@ -20,7 +21,7 @@ An implementation of mapbox's vector tile spec from with no protobuf file needed
 
 * **Lazy reads are 70% faster than the protobuf implementation (i.e. marshaling the tile)**
 
-# Usage 
+## Usage 
 
 There 3 main apis that are used to read / write vector tiles. 
 
