@@ -178,6 +178,42 @@ func WriteLayer(features []*geojson.Feature, config Config) []byte {
 	return append(beg, total_bytes...)
 }
 
+// this method is used for more iterative writes and flushes the underlying data to by tes from the writelayer
+func (mylayer *LayerWrite) Flush() []byte {
+	// creating total_bytes
+	total_bytes := []byte{}
+
+	// writing name
+	if len(mylayer.Name) > 0 {
+		total_bytes = append(total_bytes, 10)
+		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(len(mylayer.Name)))...)
+		total_bytes = append(total_bytes, []byte(mylayer.Name)...)
+	}
+
+	// appending features
+	total_bytes = append(total_bytes, mylayer.Features...)
+
+	// appending keys
+	total_bytes = append(total_bytes, mylayer.Keys_Bytes...)
+
+	// appending values
+	total_bytes = append(total_bytes, mylayer.Values_Bytes...)
+
+	// appending extra config values
+	if mylayer.Extent != 4096 {
+		total_bytes = append(total_bytes, 40)
+		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(mylayer.Extent))...)
+	}
+
+	//if mylayer.Version != 0 {
+	total_bytes = append(total_bytes, 120)
+	total_bytes = append(total_bytes, byte(mylayer.Version))
+	//}
+
+	beg := append([]byte{26}, pbf.EncodeVarint(uint64(len(total_bytes)))...)
+	return append(beg, total_bytes...)
+}
+
 // creates a layer outright using a configuration and a set of features
 // this is the outermost function that should be used
 // the outer functions is wrapped like this to reduce allocations

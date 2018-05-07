@@ -1,5 +1,5 @@
 package vt
-
+/*
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/murphy214/mbtiles-util/vector-tile/2.1"
@@ -112,3 +112,4 @@ func BenchmarkWriteAll(b *testing.B) {
 		}
 	}
 }
+*/

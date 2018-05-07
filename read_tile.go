@@ -35,25 +35,25 @@ func NewTile(bytevals []byte) *Tile {
 }
 
 // create / reads a new vector tile from a byte array
-func ReadTile(bytevals []byte, tileid m.TileID) map[string][]*geojson.Feature {
+func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 	// creating vector tile
 	tile := &Tile{
-		Buf:    &pbf.PBF{Pbf: bytevals, Length: len(bytevals)},
+		Buf:    pbf.NewPBF(bytevals),
 		TileID: tileid,
 	}
-	layermap := map[string][]*geojson.Feature{}
+	totalfeautures := []*geojson.Feature{}
 	for tile.Buf.Pos < tile.Buf.Length {
 		key, val := tile.Buf.ReadKey()
 		if key == 3 && val == 2 {
-			size := tile.Buf.ReadVarint()
-			endpos := tile.Buf.Pos + size
+			sizex := tile.Buf.ReadVarint()
+			endpos := tile.Buf.Pos + sizex
 			//var layer *Layer
 			var extent, number_features int
 			var layername string
 			var features []int
 			var keys []string
 			var values []interface{}
-			if size != 0 {
+			if sizex != 0 {
 				//layer = &Layer{StartPos: tile.Buf.Pos, EndPos: endpos}
 				key, val := tile.Buf.ReadKey()
 				for tile.Buf.Pos < endpos {
@@ -116,17 +116,20 @@ func ReadTile(bytevals []byte, tileid m.TileID) map[string][]*geojson.Feature {
 				tile.Buf.Pos = endpos
 			}
 			feats := make([]*geojson.Feature, number_features)
-
+			size := float64(extent) * float64(math.Pow(2, float64(tile.TileID.Z)))
+			x0 := float64(extent * int(tile.TileID.X))
+			y0 := float64(extent * int(tile.TileID.Y))
+			var feature_geometry, id, geom_type int
+			if extent == 0 {
+				extent = 4096
+			}
 			for i, pos := range features {
 				tile.Buf.Pos = pos
 				endpos := tile.Buf.Pos + tile.Buf.ReadVarint()
 				//startpos := tile.Buf.Pos
 
 				feature := &geojson.Feature{Properties: map[string]interface{}{}}
-				var feature_geometry, id, geom_type int
-				if extent == 0 {
-					extent = 4096
-				}
+
 				for tile.Buf.Pos < endpos {
 					key, val := tile.Buf.ReadKey()
 
@@ -169,16 +172,13 @@ func ReadTile(bytevals []byte, tileid m.TileID) map[string][]*geojson.Feature {
 						tile.Buf.Pos += size + 1
 					}
 				}
-				size := float64(extent) * float64(math.Pow(2, float64(tile.TileID.Z)))
-				x0 := float64(extent * int(tile.TileID.X))
-				y0 := float64(extent * int(tile.TileID.Y))
+
 				tile.Buf.Pos = feature_geometry
 				geom := tile.Buf.ReadPackedUInt32()
-
-				pos := 0
+				
+				pos := 0	
 				var lines [][][]float64
 				var polygons [][][][]float64
-
 				for pos < len(geom) {
 					//fmt.Println(pos)
 
@@ -277,16 +277,26 @@ func ReadTile(bytevals []byte, tileid m.TileID) map[string][]*geojson.Feature {
 				if id != 0 {
 					feature.ID = id
 				}
+				feature.Properties[`layer`] = layername
 				feats[i] = feature
 			}
-			layermap[layername] = feats
+
+			totalfeautures = append(totalfeautures,feats...)
 			tile.Buf.Pos = endpos
 
 		}
 	}
-	return layermap
+	return totalfeautures
 }
 
+
+
+
+
+
+
+
+/*
 func ReadTileFeatures(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 	// getting tile
 	tilemap := ReadTile(bytevals, tileid)
@@ -303,3 +313,4 @@ func ReadTileFeatures(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 
 	return feats
 }
+*/

@@ -73,6 +73,7 @@ func (cur *Cursor) MovePoint(point []int32) {
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[0]-cur.LastPoint[0])))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[1]-cur.LastPoint[1])))
 	cur.LastPoint = point
+	cur.Count = 0
 }
 
 func (cur *Cursor) LinePoint(point []int32) {
@@ -168,12 +169,13 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	firstpt := cur.SinglePoint(coord[0])
 	weight := 0.0
 	var oldpt []int32
-	newlist := [][]int32{firstpt}
-
+	newlist := make([][]int32, len(coord))
+	//newlist := [][]int32{firstpt}
+	newlist[0] = firstpt
 	// iterating through each float point
-	for _, floatpt := range coord {
+	for pos, floatpt := range coord {
 		pt := cur.SinglePoint(floatpt)
-		newlist = append(newlist, pt)
+		newlist[pos+1] = pt
 		if count == 0 {
 			count = 1
 		} else {
@@ -216,10 +218,12 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 	if len(coords) > 1 {
 		for _, coord := range coords[1:] {
 			coord = assert_winding_order(coord, "counter")
-			cur.MakeLine(coord)
-			cur.Geometry = append(cur.Geometry, cur.Geometry...)
-			cur.Geometry = append(cur.Geometry, closePath(1))
-
+			newcur := Cursor{LastPoint: cur.LastPoint, Bounds: cur.Bounds, DeltaX: cur.DeltaX, DeltaY: cur.DeltaY}
+			newcur.MakeLine(coord)
+			newgeom := newcur.Geometry
+			newgeom = append(newgeom, closePath(1))
+			cur.Geometry = append(cur.Geometry, newgeom...)
+			cur.LastPoint = coord[len(coord)-1]
 		}
 	}
 
@@ -290,11 +294,23 @@ func (cur *Cursor) MakePointFloat(point []float64) {
 
 }
 
+func (cur *Cursor) MakePoint(point []int32) {
+	cur.Geometry = []uint32{moveTo(uint32(1))}
+	cur.LinePoint(point)
+}
+
 func (cur *Cursor) MakeMultiPointFloat(points [][]float64) {
 	cur.Geometry = []uint32{moveTo(uint32(len(points)))}
 	for _, point := range points {
 		newpoint := cur.SinglePoint(point)
 		cur.LinePoint(newpoint)
+	}
+}
+
+func (cur *Cursor) MakeMultiPoint(points [][]int32) {
+	cur.Geometry = []uint32{moveTo(uint32(len(points)))}
+	for _, point := range points {
+		cur.LinePoint(point)
 	}
 }
 
@@ -304,9 +320,21 @@ func (cur *Cursor) MakeMultiLineFloat(lines [][][]float64) {
 	}
 }
 
+func (cur *Cursor) MakeMultiLine(lines [][][]int32) {
+	for _, line := range lines {
+		cur.MakeLine(line)
+	}
+}
+
 func (cur *Cursor) MakeMultiPolygonFloat(lines [][][][]float64) {
 	for _, line := range lines {
 		cur.MakePolygonFloat(line)
+	}
+}
+
+func (cur *Cursor) MakeMultiPolygon(lines [][][][]int32) {
+	for _, line := range lines {
+		cur.MakePolygon(line)
 	}
 }
 

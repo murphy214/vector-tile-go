@@ -87,6 +87,39 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	}
 }
 
+// function for adding the feature for a raw implementation
+func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, properties map[string]interface{}) {
+	var array1, array2, array3, array4, array5, array6, array7, array8, array9 []byte
+	// refreshing cursor
+	layer.RefreshCursor()
+
+	if id > 0 {
+		// do the id shit
+		array3 = []byte{8}
+		array4 = p.EncodeVarint(uint64(id))
+	}
+
+	if len(properties) > 0 {
+		// do the tag shit here
+		array5 = []byte{18} // the key val
+		array6 = WritePackedUint32(layer.GetTags(properties))
+	}
+	if geomtype != 0 {
+		// do the geometry type shit here
+		array7 = []byte{24, byte(geomtype)}
+	}
+	// adding geometry
+	if len(geometry) > 0 {
+		array8 = []byte{34}
+		array9 = WritePackedUint32(geometry)
+	}
+
+	// on the off chane one of my lines contains one point
+	array1 = []byte{18}
+	array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
+	layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+}
+
 // adding a geobuf byte array to a given layer
 // this function house's both the ingestion and output to vector tiles
 // hopefully to reduce allocations
