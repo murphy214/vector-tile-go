@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"fmt"
 	m "github.com/murphy214/mercantile"
 	"github.com/murphy214/pbf"
 	"github.com/paulmach/go.geojson"
@@ -12,6 +13,10 @@ type Tile struct {
 	LayerMap map[string]*Layer
 	Buf      *pbf.PBF
 	TileID   m.TileID
+}
+
+func a() {
+	fmt.Println()
 }
 
 // create / reads a new vector tile from a byte array
@@ -175,8 +180,8 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 
 				tile.Buf.Pos = feature_geometry
 				geom := tile.Buf.ReadPackedUInt32()
-				
-				pos := 0	
+
+				pos := 0
 				var lines [][][]float64
 				var polygons [][][][]float64
 				for pos < len(geom) {
@@ -204,11 +209,12 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 								//fmt.Println(pos)
 							}
 							lines = append(lines, line[:i])
+							line = [][]float64{firstpt}
 
 						} else {
-							line := [][]float64{firstpt}
-							lines = append(lines, line)
-
+							//line := [][]float64{firstpt}
+							//lines = append(lines, line)
+							pos += 1
 						}
 
 					} else if pos < len(geom) {
@@ -227,20 +233,24 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 				if len(lines) == 1 {
 					polygons = append(polygons, lines)
 				} else {
+					//fmt.Println(len(lines), len(geom))
 					for _, line := range lines {
-						val := SignedArea(line)
-						if val < 0 {
-							polygons = append(polygons, [][][]float64{line})
-						} else {
-							if len(polygons) == 0 {
+						if len(line) > 0 {
+							val := SignedArea(line)
+							if val < 0 {
 								polygons = append(polygons, [][][]float64{line})
-
 							} else {
-								polygons[len(polygons)-1] = append(polygons[len(polygons)-1], line)
+								if len(polygons) == 0 {
+									polygons = append(polygons, [][][]float64{line})
 
+								} else {
+									polygons[len(polygons)-1] = append(polygons[len(polygons)-1], line)
+
+								}
 							}
 						}
 					}
+
 				}
 
 				for i := range polygons {
@@ -281,20 +291,13 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 				feats[i] = feature
 			}
 
-			totalfeautures = append(totalfeautures,feats...)
+			totalfeautures = append(totalfeautures, feats...)
 			tile.Buf.Pos = endpos
 
 		}
 	}
 	return totalfeautures
 }
-
-
-
-
-
-
-
 
 /*
 func ReadTileFeatures(bytevals []byte, tileid m.TileID) []*geojson.Feature {

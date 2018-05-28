@@ -4,7 +4,6 @@ import (
 	m "github.com/murphy214/mercantile"
 	"math"
 	//pc "github.com/murphy214/polyclip"
-	//"fmt"
 )
 
 const mercatorPole = 20037508.34
@@ -211,9 +210,8 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 	coord := coords[0]
 	coord = assert_winding_order(coord, "clockwise")
 	cur.MakeLine(coord)
-	cur.Geometry = append(cur.Geometry, cur.Geometry...)
+	//cur.Geometry = append(cur.Geometry, cur.Geometry...)
 	cur.Geometry = append(cur.Geometry, closePath(1))
-
 	// if multiple rings exist proceed to add those also
 	if len(coords) > 1 {
 		for _, coord := range coords[1:] {
