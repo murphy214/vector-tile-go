@@ -184,12 +184,15 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 				pos := 0
 				var lines [][][]float64
 				var polygons [][][][]float64
+				var firstpt []float64
 				for pos < len(geom) {
-					//fmt.Println(pos)
-
 					if geom[pos] == 9 {
 						pos += 1
-						firstpt := []float64{DeltaDim(int(geom[pos])), DeltaDim(int(geom[pos+1]))}
+						if pos != 1 && geom_type == 2 {
+							firstpt = []float64{firstpt[0] + DeltaDim(int(geom[pos])), firstpt[1] + DeltaDim(int(geom[pos+1]))}
+						} else {
+							firstpt = []float64{DeltaDim(int(geom[pos])), DeltaDim(int(geom[pos+1]))}
+						}
 						pos += 2
 						if pos < len(geom) {
 							//fmt.Println(geom[pos])
@@ -229,28 +232,31 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 						pos += 1
 					}
 				}
-
-				if len(lines) == 1 {
-					polygons = append(polygons, lines)
-				} else {
-					//fmt.Println(len(lines), len(geom))
-					for _, line := range lines {
-						if len(line) > 0 {
-							val := SignedArea(line)
-							if val < 0 {
-								polygons = append(polygons, [][][]float64{line})
-							} else {
-								if len(polygons) == 0 {
+				if geom_type == 3 {
+					if len(lines) == 1 {
+						polygons = append(polygons, lines)
+					} else {
+						//fmt.Println(len(lines), len(geom))
+						for _, line := range lines {
+							if len(line) > 0 {
+								val := SignedArea(line)
+								if val < 0 {
 									polygons = append(polygons, [][][]float64{line})
-
 								} else {
-									polygons[len(polygons)-1] = append(polygons[len(polygons)-1], line)
+									if len(polygons) == 0 {
+										polygons = append(polygons, [][][]float64{line})
 
+									} else {
+										polygons[len(polygons)-1] = append(polygons[len(polygons)-1], line)
+
+									}
 								}
 							}
 						}
-					}
 
+					}
+				} else {
+					polygons = append(polygons, lines)
 				}
 
 				for i := range polygons {
