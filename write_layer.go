@@ -43,8 +43,8 @@ func NewLayer(tileid m.TileID, name string) LayerWrite {
 }
 
 // a function for creatnig a new conifguratoin
-func NewConfig(filename string, tileid m.TileID) Config {
-	return Config{Name: filename, TileID: tileid}
+func NewConfig(layername string, tileid m.TileID) Config {
+	return Config{Name: layername, TileID: tileid}
 }
 
 // creates a layer from a configuration
