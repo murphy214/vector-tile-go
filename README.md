@@ -3,7 +3,19 @@
 
 An implementation of mapbox's vector-tile spec for reading / writing vector tiles. This is implementation is protocol buffer less meaning the serialization and deserialization is handled by me, which saves some needless allocations as well as pretty signicant performance gains.
 
-### Why?
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Installing](#installing)
+- [Features](#features)
+- [Caveats](#caveats)
+- [Usage](#usage)
+  -  [Reading a Vector Tile as Geojson Features](#reading-a-vector-tile-as-geojson-features)
+  -  [Reading a Vector Tile Lazily (As Needed)](#reading-a-vector-tile-lazily-as-needed)
+  -  [Compositing Vector Tile Layers](#compositing-vector-tile-layers)
+  -  [Writing A Single Vector Tile Layer From GeoJSON Features](#writing-a-single-vector-tile-layer-from-geojson-features)
+
+### Introduction
 
 An implementation of mapbox's vector tile spec from with no protobuf file needed. Designed to reduce allocations and to be faster for reading / writing. When you think about how a vector tile is marshaled / unmarshaled from a regular protobuf implementation its kind of ridiculous, we transform (generally) geojson data into another entire feature struct with an entire new allocation for each, only to serialize that data structure to bytes immediately after. This repository implements API's for functionality that I find myself using for vector tiles.
 
@@ -41,7 +53,7 @@ The api is currently still fluid and subject to change but currently everything 
 
 This repositories usage of reading and writing vector-tiles may seem a bit obtuse compared to general proto manner for reading protocol buffers. This is because for reading no vector-tile structure is every read as-is its either read completely into a geojson given the tile context OR read lazily feature / layer using each feature as needed. This provides all the structures that you would need to access anyway without having to carry around 3 representive data structures: vector tile feature, vector tile feature geometry read (integer format),vector tile feature in geojson format. 
 
-#### Usage - Reading a Vector Tile as Geojson Features 
+#### Reading a Vector Tile as Geojson Features 
 
 The example below simply reads in a vector tile as a slice of geojson features.
 
@@ -70,7 +82,7 @@ func main() {
 
 ```
 
-#### Usage - Reading a Vector Tile Lazily (As Needed)
+#### Reading a Vector Tile Lazily (As Needed)
 
 The example below reads the vector tile by each feature, as needed parsing, the lazyfeature into what generally is a vector tile feature structure (i.e. properties & flat uint32 array for geometry), then, if desired, the geometry can be read as integers or converted entirely to a geojson feature given the tile it references.   
 
@@ -112,7 +124,7 @@ func main() {
 }
 ```
 
-#### Usage - Compositing (Combining) Vector Tile Layers 
+#### Compositing Vector Tile Layers 
 
 This repository intentially only implements a writer to write only layer at a time. This may seem like an odd behavior but in practice it utilizes one of the vector tile spec's most beneficial properties being that in order to combine disparate layers of the same tile, no structure in memory is needed just append one array of bytes to another and you have a vector tile byte array containing both layers.
 
@@ -156,7 +168,7 @@ func main() {
 }
 ```
 
-#### Usage - Writing A Single Vector Tile Layer From GeoJSON Features
+#### Writing A Single Vector Tile Layer From GeoJSON Features
 
 This example writes a single vector tile layer from geojson features from a given tile. 
 
