@@ -3,11 +3,11 @@
 
 An implementation of mapbox's vector-tile spec for reading / writing vector tiles. This is implementation is protocol buffer less meaning the serialization and deserialization is handled by me, which saves some needless allocations as well as pretty signicant performance gains.
 
-#### Why?
+### Why?
 
 An implementation of mapbox's vector tile spec from with no protobuf file needed. Designed to reduce allocations and to be faster for reading / writing. When you think about how a vector tile is marshaled / unmarshaled from a regular protobuf implementation its kind of ridiculous, we transform (generally) geojson data into another entire feature struct with an entire new allocation for each, only to serialize that data structure to bytes immediately after. This repository implements API's for functionality that I find myself using for vector tiles.
 
-#### Installing
+### Installing
 
 To start using vector-tile-go, install Go and run go get:
 
@@ -15,7 +15,7 @@ To start using vector-tile-go, install Go and run go get:
 go get -u github.com/murphy214/vector-tile-go
 ```
 
-#### Features 
+### Features 
 
 * Reads vector tiles into layer map geojson with a tile id given
 
@@ -33,11 +33,11 @@ go get -u github.com/murphy214/vector-tile-go
 
 * **Lazy reads are 70% faster than the protobuf implementation (i.e. marshaling the tile)**
 
-#### Caveats 
+### Caveats 
 
 The api is currently still fluid and subject to change but currently everything I throw at works which I find to be pretty good, as I'm implementing several processes in one library. 
 
-#### Usage 
+### Usage 
 
 This repositories usage of reading and writing vector-tiles may seem a bit obtuse compared to general proto manner for reading protocol buffers. This is because for reading no vector-tile structure is every read as-is its either read completely into a geojson given the tile context OR read lazily feature / layer using each feature as needed. This provides all the structures that you would need to access anyway without having to carry around 3 representive data structures: vector tile feature, vector tile feature geometry read (integer format),vector tile feature in geojson format. 
 
@@ -154,11 +154,39 @@ func main() {
 	}
 
 }
-
-
 ```
 
+#### Usage - Writing A Single Vector Tile Layer From GeoJSON Features
 
+This example writes a single vector tile layer from geojson features from a given tile. 
+
+```golang
+package main
+
+import (
+	"fmt"
+	m "github.com/murphy214/mercantile"
+	"github.com/murphy214/vector-tile-go"
+	"github.com/paulmach/go.geojson"
+)
+
+func main() {
+
+	// the features that will be written to both layers
+	// these of course would be different for different layers normally
+	feature := &geojson.Feature{ID: interface{}(nil), Type: "", BoundingBox: []float64(nil), Geometry: (*geojson.Geometry)(&geojson.Geometry{Type: "LineString", BoundingBox: []float64(nil), Point: []float64(nil), MultiPoint: [][]float64(nil), LineString: [][]float64{[]float64{-82.61581420898438, 38.1305226701526}, []float64{-82.6170802116394, 38.13172105071115}, []float64{-82.61892557144165, 38.132683116639384}, []float64{-82.61993408203125, 38.13345951147531}, []float64{-82.62175798416138, 38.1345734548573}, []float64{-82.62330293655396, 38.135316074332906}, []float64{-82.62703657150269, 38.136210583213455}, []float64{-82.62776613235474, 38.13649749883382}, []float64{-82.62808799743652, 38.13671690413537}}, MultiLineString: [][][]float64(nil), Polygon: [][][]float64(nil), MultiPolygon: [][][][]float64(nil), Geometries: []*geojson.Geometry(nil), CRS: map[string]interface{}(nil)}), Properties: map[string]interface{}{"ROUTEID": "5040052650000", "SubRoute": 65, "Route": 52, "BMP": 0, "SuppCode": 0, "StreetName": "BIG SANDY RIVER RD", "CountyCode": 50, "District": 2, "ONEWAY": false, "Label": "52/65", "SignSystem": "4", "EMP": 3.70000005, "Shape_Leng": 5819.40997234}, CRS: map[string]interface{}(nil)}
+	features := []*geojson.Feature{feature}
+
+	xyz := m.TileID{1107, 1578, 12} // the tileid these bytes relate to
+
+	// creating a 2 layers being "layer1" & "layer2" respectively
+	config := vt.NewConfig("mylayer", xyz)
+	layerbytes := vt.WriteLayer(features, config)
+
+	// reading the feature I just wrote!
+	fmt.Println(vt.ReadTile(layerbytes, xyz)[0])
+}
+```
 
 
 
