@@ -32,6 +32,7 @@ type Config struct {
 	Extent     int32    // extent will assume 4096 if 0
 	Version    int      // version number will assume 15 if 0
 	ReduceBool bool
+	ExtentBool bool
 }
 
 // creates a new layer
@@ -44,7 +45,7 @@ func NewLayer(tileid m.TileID, name string) LayerWrite {
 
 // a function for creatnig a new conifguratoin
 func NewConfig(layername string, tileid m.TileID) Config {
-	return Config{Name: layername, TileID: tileid}
+	return Config{Name: layername, TileID: tileid, ExtentBool: true}
 }
 
 // creates a layer from a configuration
@@ -132,7 +133,9 @@ func WriteLayer(features []*geojson.Feature, config Config) []byte {
 
 	// creating layer
 	mylayer := NewLayerConfig(config)
-
+	if config.ExtentBool {
+		mylayer.Cursor.ExtentBool = true
+	}
 	if config.ReduceBool {
 		// adding features
 		for _, feat := range features {

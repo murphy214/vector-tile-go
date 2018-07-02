@@ -9,14 +9,15 @@ import (
 const mercatorPole = 20037508.34
 
 type Cursor struct {
-	Geometry  []uint32
-	LastPoint []int32
-	Bounds    m.Extrema
-	DeltaX    float64 // delta between bounds
-	DeltaY    float64 // delta between bounds
-	Count     uint32
-	Extent    int32
-	Bds       m.Extrema
+	Geometry   []uint32
+	LastPoint  []int32
+	Bounds     m.Extrema
+	DeltaX     float64 // delta between bounds
+	DeltaY     float64 // delta between bounds
+	Count      uint32
+	Extent     int32
+	Bds        m.Extrema
+	ExtentBool bool
 }
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
@@ -265,19 +266,21 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 	xval := int32(factorx * float64(cur.Extent))
 	yval := int32(factory * float64(cur.Extent))
 
-	if xval >= cur.Extent {
-		xval = cur.Extent
-	}
+	if cur.ExtentBool {
+		if xval >= cur.Extent {
+			xval = cur.Extent
+		}
 
-	if yval >= cur.Extent {
-		yval = cur.Extent
-	}
+		if yval >= cur.Extent {
+			yval = cur.Extent
+		}
 
-	if xval < 0 {
-		xval = 0
-	}
-	if yval < 0 {
-		yval = 0
+		if xval < 0 {
+			xval = 0
+		}
+		if yval < 0 {
+			yval = 0
+		}
 	}
 
 	return []int32{xval, yval}
