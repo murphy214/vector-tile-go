@@ -73,8 +73,10 @@ func main() {
 
 	// reading in every feature (within every layer)
 	// as can be seen below the layer field is just added as a property to each feature
-	features := vt.ReadTile(bytevals, xyz)
-
+	features,err := vt.ReadTile(bytevals, xyz)
+	if err != nil {
+		fmt.Println(err)
+	}
 	for _, feature := range features {
 		fmt.Printf("LayerName: %s\nGeometry: %+v\nProperties: %+v\n\n", feature.Properties["layer"], feature.Geometry, feature.Properties)
 	}
@@ -101,21 +103,34 @@ func main() {
 	xyz := m.TileID{1107, 1578, 12} // the tileid these bytes relate to
 
 	// loading the tile to perform lazy feature reads
-	tile := vt.NewTile(bytevals)
-
+	tile,err := vt.NewTile(bytevals)
+	if err != nil {
+		fmt.Println(err)
+	}
 	for layername, layer := range tile.LayerMap {
 		fmt.Printf("LayerName: %s\n", layername)
 		for layer.Next() {
 			// getting the lazy feature
-			lazyfeature := layer.Feature()
+			lazyfeature,err := layer.Feature()
+			if err != nil {
+				fmt.Println(err)
+			}
 			fmt.Printf("Lazy Feature: %+v\n", lazyfeature)
 
 			// loading the geometry as a geojson.Geometry structure
 			// here the geometry is still in integer format
 			// but stored a floats in the geojson.Geometry struct
-			fmt.Printf("Geometry: %+v\n", lazyfeature.LoadGeometry())
+			geom,err := lazyfeature.LoadGeometry()
+			if err != nil {
+				fmt.Println(err)
+			}			
+			fmt.Printf("Geometry: %+v\n", geom)
 
 			// loading the lazy feature as a geojson feature entirely
+			feat,err := lazyfeature.ToGeoJSON(xyz)
+			if err != nil {
+				fmt.Println(err)
+			}			
 			fmt.Printf("Geojson Feature: %+v\n", lazyfeature.ToGeoJSON(xyz))
 
 		}
@@ -150,16 +165,24 @@ func main() {
 
 	// creating a 2 layers being "layer1" & "layer2" respectively
 	config1 := vt.NewConfig("layer1", xyz)
-	layer1bytes := vt.WriteLayer(features, config1)
+	layer1bytes,err := vt.WriteLayer(features, config1)
+	if err != nil {
+		fmt.Println(err)
+	}
 	config2 := vt.NewConfig("layer2", xyz)
-	layer2bytes := vt.WriteLayer(features, config2)
-
+	layer2bytes,err := vt.WriteLayer(features, config2)
+	if err != nil {
+		fmt.Println(err)
+	}
 	// combining layers
 	combined_layers_bytes := append(layer1bytes, layer2bytes...)
 
 	// reading vector tile
-	tile := vt.NewTile(combined_layers_bytes)
-
+	tile,err := vt.NewTile(combined_layers_bytes)
+	if err != nil {
+		fmt.Println(err)
+	}
+	
 	// printing each layer in the tile
 	for layername := range tile.LayerMap {
 		fmt.Println(layername)
@@ -193,10 +216,16 @@ func main() {
 
 	// creating a 2 layers being "layer1" & "layer2" respectively
 	config := vt.NewConfig("mylayer", xyz)
-	layerbytes := vt.WriteLayer(features, config)
-
+	layerbytes,err := vt.WriteLayer(features, config)
+	if err != nil {
+		fmt.Println(err)
+	}
 	// reading the feature I just wrote!
-	fmt.Println(vt.ReadTile(layerbytes, xyz)[0])
+	feats,err := vt.ReadTile(layerbytes, xyz)
+	if err != nil {
+		fmt.Println(err)
+	}	
+	fmt.Println(feats[0])
 }
 ```
 
