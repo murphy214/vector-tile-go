@@ -55,7 +55,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		case "LineString":
 			array8 = []byte{34}
 			layer.Cursor.MakeLineFloat(feature.Geometry.LineString)
-			if layer.Cursor.Count == 1 {
+			if layer.Cursor.Count == 0 {
 				abort_bool = true
 			}
 			array9 = WritePackedUint32(layer.Cursor.Geometry)
@@ -124,7 +124,6 @@ func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, 
 // this function house's both the ingestion and output to vector tiles
 // hopefully to reduce allocations
 func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
-	boolval := false
 	// the pbf representing a feauture
 	pbf := p.PBF{Pbf: bytevals, Length: len(bytevals)}
 
@@ -219,8 +218,8 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		}
 		array7 = []byte{24, geomtypeb}
 	}
+	var abort_bool bool
 	if key == 4 && val == 2 {
-		boolval = true
 		size := pbf.ReadVarint()
 		endpos := pbf.Pos + size
 
@@ -232,6 +231,9 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		case "LineString":
 			array8 = []byte{34}
 			layer.Cursor.MakeLineFloat(pbf.ReadLine(0, endpos))
+			if layer.Cursor.Count == 0 {
+				abort_bool = true
+			}
 			array9 = WritePackedUint32(layer.Cursor.Geometry)
 		case "Polygon":
 			array8 = []byte{34}
@@ -252,17 +254,10 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		}
 		key, val = pbf.ReadKey()
 	}
-	if layer.ReduceBool {
-		if (layer.Cursor.Bds.E-layer.Cursor.Bds.W)/layer.DeltaX > default_percentage || (layer.Cursor.Bds.N-layer.Cursor.Bds.S)/layer.DeltaY > default_percentage {
-
-		} else {
-			boolval = true
-		}
-	}
-
-	if boolval {
+	if !abort_bool {
 		array1 = []byte{18}
 		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
 		layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
 	}
+
 }

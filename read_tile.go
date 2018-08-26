@@ -1,7 +1,7 @@
 package vt
 
 import (
-	"fmt"
+	"errors"
 	m "github.com/murphy214/mercantile"
 	"github.com/murphy214/pbf"
 	"github.com/paulmach/go.geojson"
@@ -15,14 +15,17 @@ type Tile struct {
 	TileID   m.TileID
 }
 
-func a() {
-	fmt.Println()
-}
-
 // create / reads a new vector tile from a byte array
-func NewTile(bytevals []byte) *Tile {
+func NewTile(bytevals []byte) (tile *Tile, err error) {
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		if recover() != nil {
+			err = errors.New("Error in NewTile.")
+		}
+	}()
+
 	// creating vector tile
-	tile := &Tile{
+	tile = &Tile{
 		LayerMap: map[string]*Layer{},
 		Buf:      &pbf.PBF{Pbf: bytevals, Length: len(bytevals)},
 	}
@@ -36,17 +39,25 @@ func NewTile(bytevals []byte) *Tile {
 
 		}
 	}
-	return tile
+	return tile, err
 }
 
 // create / reads a new vector tile from a byte array
-func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
+func ReadTile(bytevals []byte, tileid m.TileID) (totalfeautures []*geojson.Feature, err error) {
+
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		if recover() != nil {
+			err = errors.New("Error in ReadTile")
+		}
+	}()
+
 	// creating vector tile
 	tile := &Tile{
 		Buf:    pbf.NewPBF(bytevals),
 		TileID: tileid,
 	}
-	totalfeautures := []*geojson.Feature{}
+	totalfeautures = []*geojson.Feature{}
 	for tile.Buf.Pos < tile.Buf.Length {
 		key, val := tile.Buf.ReadKey()
 		if key == 3 && val == 2 {
@@ -144,9 +155,7 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 					}
 					// logic for handling tags
 					if key == 2 && val == 2 {
-						//fmt.Println(feature)
 						tags := tile.Buf.ReadPackedUInt32()
-						//fmt.Println(len(tags),len(values),len(keys),"dasdfa")
 						i := 0
 						for i < len(tags) {
 							//fmt.Println(tags,keys,tags[i],tags[i+1])
@@ -180,7 +189,7 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 
 				tile.Buf.Pos = feature_geometry
 				geom := tile.Buf.ReadPackedUInt32()
-
+				//fmt.Println(geom)
 				pos := 0
 				var lines [][][]float64
 				var polygons [][][][]float64
@@ -194,6 +203,9 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 							firstpt = []float64{DeltaDim(int(geom[pos])), DeltaDim(int(geom[pos+1]))}
 						}
 						pos += 2
+						if len(geom) == 3 {
+							lines = [][][]float64{{firstpt}}
+						}
 						if pos < len(geom) {
 							//fmt.Println(geom[pos])
 							cmdLen := geom[pos]
@@ -233,10 +245,17 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 					}
 				}
 				if geom_type == 3 {
+					for pos, line := range lines {
+						f, l := line[0], line[len(line)-1]
+						if !(f[0] == l[0] && l[1] == f[1]) {
+							line = append(line, line[0])
+						}
+						lines[pos] = line
+					}
+
 					if len(lines) == 1 {
 						polygons = append(polygons, lines)
 					} else {
-						//fmt.Println(len(lines), len(geom))
 						for _, line := range lines {
 							if len(line) > 0 {
 								val := SignedArea(line)
@@ -288,7 +307,6 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 
 					}
 				}
-				//feature.Geometry = Geometry(tile, feature_geometry, geom_type, tile.TileID, extent)
 
 				if id != 0 {
 					feature.ID = id
@@ -302,24 +320,9 @@ func ReadTile(bytevals []byte, tileid m.TileID) []*geojson.Feature {
 
 		}
 	}
-	return totalfeautures
-}
-
-/*
-func ReadTileFeatures(bytevals []byte, tileid m.TileID) []*geojson.Feature {
-	// getting tile
-	tilemap := ReadTile(bytevals, tileid)
-
-	// creating layermap
-	feats := []*geojson.Feature{}
-	// iterating through each layer
-	for _, feat := range tilemap {
-		// creating each layer in the map
-
-		// iterating through each feature
-		feats = append(feats, feat...)
+	if len(totalfeautures) == 0 {
+		err = errors.New("No features read from given tile.")
 	}
+	return totalfeautures, err
 
-	return feats
 }
-*/

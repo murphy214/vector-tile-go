@@ -22,6 +22,41 @@ type Cursor struct {
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
 
+func TrimPolygonFloat(lines [][][]float64) [][][]float64 {
+	for pos, line := range lines {
+		f, l := line[0], line[len(line)-1]
+		if !(f[0] == l[0] && l[1] == f[1]) {
+			line = append(line, line[0])
+		}
+		lines[pos] = line
+	}
+	return lines
+}
+func TrimPolygon(lines [][][]int32) [][][]int32 {
+	for pos, line := range lines {
+		f, l := line[0], line[len(line)-1]
+		if !(f[0] == l[0] && l[1] == f[1]) {
+			line = append(line, line[0])
+		}
+		lines[pos] = line
+	}
+	return lines
+}
+
+func TrimMultiPolygonFloat(polygons [][][][]float64) [][][][]float64 {
+	for pos, polygon := range polygons {
+		polygons[pos] = TrimPolygonFloat(polygon)
+	}
+	return polygons
+}
+
+func TrimMultiPolygon(polygons [][][][]int32) [][][][]int32 {
+	for pos, polygon := range polygons {
+		polygons[pos] = TrimPolygon(polygon)
+	}
+	return polygons
+}
+
 func NewCursor(tileid m.TileID) *Cursor {
 	bound := m.Bounds(tileid)
 	deltax := bound.E - bound.W
@@ -113,7 +148,7 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	for _, point := range coords[1:] {
 		cur.LinePoint(cur.SinglePoint(point))
 	}
-
+	//fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
 	cur.Geometry[startpos+3] = lineTo(cur.Count)
 
 	//return cur.Geometry
@@ -173,7 +208,7 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	//newlist := [][]int32{firstpt}
 	newlist[0] = firstpt
 	// iterating through each float point
-	for pos, floatpt := range coord {
+	for pos, floatpt := range coord[1:] {
 		pt := cur.SinglePoint(floatpt)
 		newlist[pos+1] = pt
 		if count == 0 {
@@ -207,6 +242,8 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 
 // makes a polygon
 func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
+	coords = TrimPolygon(coords)
+
 	// applying the first ring
 	coord := coords[0]
 	coord = assert_winding_order(coord, "clockwise")
@@ -231,6 +268,7 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 
 // makes a polygon
 func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
+	coords = TrimPolygonFloat(coords)
 	// applying the first ring
 	cur.AssertConvert(coords[0], "clockwise")
 
@@ -328,12 +366,15 @@ func (cur *Cursor) MakeMultiLine(lines [][][]int32) {
 }
 
 func (cur *Cursor) MakeMultiPolygonFloat(lines [][][][]float64) {
+	//lines = TrimMultiPolygonFloat(lines)
 	for _, line := range lines {
 		cur.MakePolygonFloat(line)
 	}
 }
 
 func (cur *Cursor) MakeMultiPolygon(lines [][][][]int32) {
+	//lines = TrimMultiPolygon(lines)
+
 	for _, line := range lines {
 		cur.MakePolygon(line)
 	}

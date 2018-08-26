@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"errors"
 	//"fmt"
 	g "github.com/murphy214/geobuf"
 	m "github.com/murphy214/mercantile"
@@ -124,32 +125,24 @@ func (layer *LayerWrite) RefreshCursor() {
 // the outer functions is wrapped like this to reduce allocations
 // if it was used as method it could cause leaks which I'll have to check
 // later via escape analysis
-func WriteLayer(features []*geojson.Feature, config Config) []byte {
-	//
-	var reduce_config *Reduce_Config
-	if config.ReduceBool {
-		reduce_config = NewReduceConfig(config.TileID)
-	}
+func WriteLayer(features []*geojson.Feature, config Config) (total_bytes []byte, err error) {
+
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		if recover() != nil {
+			err = errors.New("Error in WriteLayer().")
+		}
+	}()
 
 	// creating layer
 	mylayer := NewLayerConfig(config)
 	if config.ExtentBool {
 		mylayer.Cursor.ExtentBool = true
 	}
-	if config.ReduceBool {
-		// adding features
-		for _, feat := range features {
-			if Filter(feat, reduce_config) {
-				mylayer.AddFeature(feat)
-			}
-		}
-	} else {
-		for _, feat := range features {
-			mylayer.AddFeature(feat)
-		}
+
+	for _, feat := range features {
+		mylayer.AddFeature(feat)
 	}
-	// creating total_bytes
-	total_bytes := []byte{}
 
 	// writing name
 	if len(mylayer.Name) > 0 {
@@ -178,7 +171,8 @@ func WriteLayer(features []*geojson.Feature, config Config) []byte {
 	total_bytes = append(total_bytes, byte(mylayer.Version))
 	//}
 	beg := append([]byte{26}, pbf.EncodeVarint(uint64(len(total_bytes)))...)
-	return append(beg, total_bytes...)
+	total_bytes = append(beg, total_bytes...)
+	return total_bytes, err
 }
 
 // this method is used for more iterative writes and flushes the underlying data to by tes from the writelayer
@@ -222,17 +216,24 @@ func (mylayer *LayerWrite) Flush() []byte {
 // the outer functions is wrapped like this to reduce allocations
 // if it was used as method it could cause leaks which I'll have to check
 // later via escape analysis
-func WriteLayerGeobuf(buf *g.Reader, config Config) []byte {
+func WriteLayerGeobuf(buf *g.Reader, config Config) (total_bytes []byte, err error) {
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		if recover() != nil {
+			err = errors.New("Error in NewTile.")
+		}
+	}()
+
 	// creating layer
 	mylayer := NewLayerConfig(config)
+	if config.ExtentBool {
+		mylayer.Cursor.ExtentBool = true
+	}
 
 	// adding features
 	for buf.Next() {
 		mylayer.AddFeatureGeobuf(buf.Bytes())
 	}
-
-	// creating total_bytes
-	total_bytes := []byte{}
 
 	// writing name
 	if len(mylayer.Name) > 0 {
@@ -262,5 +263,6 @@ func WriteLayerGeobuf(buf *g.Reader, config Config) []byte {
 	//}
 
 	beg := append([]byte{26}, pbf.EncodeVarint(uint64(len(total_bytes)))...)
-	return append(beg, total_bytes...)
+	total_bytes = append(beg, total_bytes...)
+	return total_bytes, err
 }
