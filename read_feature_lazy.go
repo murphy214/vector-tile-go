@@ -52,9 +52,9 @@ func SignedArea(ring [][]float64) float64 {
 func Project(line [][]float64, x0 float64, y0 float64, size float64) [][]float64 {
 	for j := range line {
 		p := line[j]
-		y2 := 180 - (p[1]+y0)*360.0/size
+		y2 := 180.0 - (float64(p[1])+y0)*360.0/size
 		line[j] = []float64{
-			(p[0]+x0)*360.0/size - 180.0,
+			(float64(p[0])+x0)*360.0/size - 180.0,
 			360.0/math.Pi*math.Atan(math.Exp(y2*math.Pi/180.0)) - 90.0}
 	}
 	return line
@@ -272,8 +272,8 @@ func (feature *Feature) ToGeoJSON(tile m.TileID) (*geojson.Feature, error) {
 	// this values will be used to preproject the coordinates
 	extent := feature.extent
 	size := float64(extent) * float64(math.Pow(2, float64(tile.Z)))
-	x0 := float64(extent * int(tile.X))
-	y0 := float64(extent * int(tile.Y))
+	x0 := float64(extent) * float64(tile.X)
+	y0 := float64(extent) * float64(tile.Y)
 	geometry, err := feature.LoadGeometry()
 	if err != nil {
 		return &geojson.Feature{}, err

@@ -133,8 +133,8 @@ func ReadTile(bytevals []byte, tileid m.TileID) (totalfeautures []*geojson.Featu
 			}
 			feats := make([]*geojson.Feature, number_features)
 			size := float64(extent) * float64(math.Pow(2, float64(tile.TileID.Z)))
-			x0 := float64(extent * int(tile.TileID.X))
-			y0 := float64(extent * int(tile.TileID.Y))
+			x0 := float64(extent) * float64(tile.TileID.X)
+			y0 := float64(extent) * float64(tile.TileID.Y)
 			var feature_geometry, id, geom_type int
 			if extent == 0 {
 				extent = 4096
