@@ -26,6 +26,7 @@ func (tile *Tile) NewLayer(endpos int) {
 	for tile.Buf.Pos < layer.EndPos {
 		if key == 1 && val == 2 {
 			layer.Name = tile.Buf.ReadString()
+			tile.Layers = append(tile.Layers, layer.Name)
 			key, val = tile.Buf.ReadKey()
 		}
 		// collecting all the features

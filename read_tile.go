@@ -10,9 +10,10 @@ import (
 
 // upper vector tile structure
 type Tile struct {
-	LayerMap map[string]*Layer
+	LayerMap map[string]*Layer // generalized layer map with all the methods hanging off each layer
 	Buf      *pbf.PBF
-	TileID   m.TileID
+	TileID   m.TileID // the tileid of the given tile
+	Layers   []string // the layer names in the order in which they occur within the vt
 }
 
 // create / reads a new vector tile from a byte array
