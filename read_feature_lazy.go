@@ -66,6 +66,7 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 		// recover from panic if one occured. Set err to nil otherwise.
 		if recover() != nil {
 			err = errors.New("Error in Feature()")
+			layer.feature_position++
 		}
 	}()
 
@@ -306,4 +307,58 @@ func (feature *Feature) ToGeoJSON(tile m.TileID) (*geojson.Feature, error) {
 	new_feature.ID = feature.ID
 
 	return new_feature, err
+}
+
+// converts a single geometry
+func convertpt(pt []float64, dim float64) []float64 {
+	if pt[0] < 0 {
+		pt[0] = 0
+	}
+	if pt[1] < 0 {
+		pt[1] = 0
+	}
+	return []float64{pbf.Round(pt[0]/dim, .5, 0), pbf.Round(pt[1]/dim, .5, 0)}
+}
+
+// converts the line
+func convertln(ln [][]float64, dim float64) [][]float64 {
+	for i := range ln {
+		ln[i] = convertpt(ln[i], dim)
+	}
+	return ln
+}
+
+// convert lines
+func convertlns(lns [][][]float64, dim float64) [][][]float64 {
+	for i := range lns {
+		lns[i] = convertln(lns[i], dim)
+	}
+	return lns
+}
+
+func ConvertGeometry(geom *geojson.Geometry, dimf float64) *geojson.Geometry {
+	switch geom.Type {
+	case "Point":
+		geom.Point = convertpt(geom.Point, dimf)
+	case "MultiPoint":
+		geom.MultiPoint = convertln(geom.MultiPoint, dimf)
+	case "LineString":
+		geom.LineString = convertln(geom.LineString, dimf)
+	case "MultiLineString":
+		geom.MultiLineString = convertlns(geom.MultiLineString, dimf)
+	case "Polygon":
+		geom.Polygon = convertlns(geom.Polygon, dimf)
+	case "MultiPolygon":
+		for i := range geom.MultiPolygon {
+			geom.MultiPolygon[i] = convertlns(geom.MultiPolygon[i], dimf)
+		}
+	}
+	return geom
+}
+
+// loads the given geometry but scaled to the given dimennsioin
+func (feature *Feature) LoadGeometryScaled(dim float64) (geomm *geojson.Geometry, err error) {
+	geom, err := feature.LoadGeometry()
+	geom2 := ConvertGeometry(geom, dim)
+	return geom2, err
 }

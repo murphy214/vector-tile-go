@@ -89,3 +89,7 @@ func (tile *Tile) NewLayer(endpos int) {
 func (layer *Layer) Next() bool {
 	return layer.feature_position < layer.Number_Features
 }
+
+func (layer *Layer) Reset() {
+	layer.feature_position = 0
+}
