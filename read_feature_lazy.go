@@ -312,10 +312,10 @@ func (feature *Feature) ToGeoJSON(tile m.TileID) (*geojson.Feature, error) {
 // converts a single geometry
 func convertpt(pt []float64, dim float64) []float64 {
 	if pt[0] < 0 {
-		pt[0] = 0
+		//pt[0] = 0
 	}
 	if pt[1] < 0 {
-		pt[1] = 0
+		//pt[1] = 0
 	}
 	return []float64{pbf.Round(pt[0]/dim, .5, 0), pbf.Round(pt[1]/dim, .5, 0)}
 }
@@ -337,6 +337,9 @@ func convertlns(lns [][][]float64, dim float64) [][][]float64 {
 }
 
 func ConvertGeometry(geom *geojson.Geometry, dimf float64) *geojson.Geometry {
+	if geom == nil {
+		return &geojson.Geometry{}
+	}
 	switch geom.Type {
 	case "Point":
 		geom.Point = convertpt(geom.Point, dimf)
