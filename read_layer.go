@@ -90,6 +90,9 @@ func (layer *Layer) Next() bool {
 	return layer.feature_position < layer.Number_Features
 }
 
+// resets a layer
 func (layer *Layer) Reset() {
 	layer.feature_position = 0
 }
+
+
