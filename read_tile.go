@@ -18,13 +18,14 @@ type Tile struct {
 
 // create / reads a new vector tile from a byte array
 func NewTile(bytevals []byte) (tile *Tile, err error) {
+	/*
 	defer func() {
 		// recover from panic if one occured. Set err to nil otherwise.
 		if recover() != nil {
 			err = errors.New("Error in NewTile.")
 		}
 	}()
-
+	*/
 	// creating vector tile
 	tile = &Tile{
 		LayerMap: map[string]*Layer{},

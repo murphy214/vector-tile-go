@@ -206,8 +206,8 @@ func (tagwriter *TagWriter) MakeProperties(props map[string]interface{}) []int {
 }
 
 // creates the tagsreader object from the writer
-func (tagwriter *TagWriter) Reader() *TagsReader {
-	return &TagsReader{
+func (tagwriter *TagWriter) Reader() *TagReader {
+	return &TagReader{
 		StringValues:tagwriter.StringValues,
 		IntValues:tagwriter.IntValues,
 		FloatValues:tagwriter.FloatValues,

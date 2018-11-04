@@ -1,15 +1,5 @@
 package vt
 
-// delta encoding 
-func DeltaDim(num int) float64 {
-	if num%2 == 1 {
-		return float64((num + 1) / -2)
-	} else {
-		return float64(num / 2)
-	}
-	return float64(0)
-}
-
 // the tag reader struct
 type TagReader struct {
 	StringValues []string
