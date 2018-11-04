@@ -2,6 +2,7 @@ package vt
 
 import (
 	"github.com/murphy214/pbf"
+	m "github.com/murphy214/mercantile"
 )
 
 // Formula for values in dimension:
@@ -9,7 +10,7 @@ import (
 type Scaling struct {
 	Offset int // default = 0,0
 	Multiplier float64 // default = 1
-	Base // default = 0.0
+	Base float64 // default = 0.0
 }
 
 // creates a new scaling object
@@ -30,13 +31,17 @@ type Layer struct {
 	EndPos           int
 	feature_position int
 	Buf              *pbf.PBF
+
+	// stuff added in v3
 	TagReader *TagReader // the tag reader for the v3 spec
 	ElevationScaling *Scaling // the scaling dimension fro version 3
+	AttributeScalings []*Scaling // attribute scalingas
+	TileID m.TileID
 }
 
 // creates a new layer
 func (tile *Tile) NewLayer(endpos int) {
-	layer := &Layer{StartPos: tile.Buf.Pos, EndPos: endpos,TagReader:&TagReader{},Scaling:NewScaling()}
+	layer := &Layer{StartPos: tile.Buf.Pos, EndPos: endpos,TagReader:&TagReader{},ElevationScaling:NewScaling()}
 	key, val := tile.Buf.ReadKey()
 	for tile.Buf.Pos < layer.EndPos {
 		if key == 1 && val == 2 {
@@ -125,8 +130,84 @@ func (tile *Tile) NewLayer(endpos int) {
 
 		// reading the scaling for this layer
 		if key ==  10 && val == 2 {
-			tile.Buf.Byte()	
+			// getting size and end position
+			tile.Buf.ReadVarint()
+			//endpos := tile.Buf.Pos + size 
+			key,val = tile.Buf.ReadKey()
+			
+			// reading off set
+			if key == 1 && val == 0 {
+				layer.ElevationScaling.Offset = int(tile.Buf.ReadSVarint())			
+				key,val = tile.Buf.ReadKey()
+			}
+			// reading multiplier
+			if key == 2 && val == 1 {
+				layer.ElevationScaling.Multiplier = tile.Buf.ReadDouble()			
+				key,val = tile.Buf.ReadKey()
+			}
+			// reading multiplier
+			if key == 3 && val == 1 {
+				layer.ElevationScaling.Base = tile.Buf.ReadDouble()			
+				key,val = tile.Buf.ReadKey()
+			}
+
 		}	
+		
+		// reading the dense attribute scalings
+		if key ==  11 && val == 2 {
+			size := tile.Buf.ReadVarint()
+			endpos := tile.Buf.Pos + size 
+			
+			for tile.Buf.Pos < endpos {
+				//endpos := tile.Buf.Pos + size 
+				key,val = tile.Buf.ReadKey()
+				tempscaling := NewScaling()
+				
+				// reading off set
+				if key == 1 && val == 0 {
+					tempscaling.Offset = int(tile.Buf.ReadSVarint())			
+					key,val = tile.Buf.ReadKey()
+				}
+				// reading multiplier
+				if key == 2 && val == 1 {
+					tempscaling.Multiplier = tile.Buf.ReadDouble()			
+					key,val = tile.Buf.ReadKey()
+				}
+				// reading multiplier
+				if key == 3 && val == 1 {
+					tempscaling.Base = tile.Buf.ReadDouble()			
+					key,val = tile.Buf.ReadKey()				
+				}
+				layer.AttributeScalings = append(layer.AttributeScalings,tempscaling)
+			}
+			key,val = tile.Buf.ReadKey()				
+
+		}
+
+		// operation to get tileid out if applicable
+		var tilex,tiley,tilez int
+		// reading tilex 
+		if key == 12 && val == 0 {
+			tilex = int(tile.Buf.ReadVarint())
+			key, val = tile.Buf.ReadKey()
+		}
+
+		// reading tiley 
+		if key == 13 && val == 0 {
+			tiley = int(tile.Buf.ReadVarint())
+			key, val = tile.Buf.ReadKey()
+		}
+
+		// reading tilex 
+		if key == 14 && val == 0 {
+			tilez = int(tile.Buf.ReadVarint())
+			key, val = tile.Buf.ReadKey()
+		}
+
+		// adding tileid to layer
+		layer.TileID = m.TileID{int64(tilex),int64(tiley),uint64(tilez)}
+		
+
 
 
 
