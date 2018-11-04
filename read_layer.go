@@ -31,11 +31,9 @@ func (tile *Tile) NewLayer(endpos int) {
 		}
 		// collecting all the features
 		for key == 2 && val == 2 {
-			// reading for features
-
+			// reading through features for layer
 			layer.features = append(layer.features, tile.Buf.Pos)
-			feat_size := tile.Buf.ReadVarint()
-
+			feat_size := tile.Buf.ReadVarint()			
 			tile.Buf.Pos += feat_size
 			key, val = tile.Buf.ReadKey()
 		}
@@ -86,6 +84,7 @@ func (tile *Tile) NewLayer(endpos int) {
 	layer.Buf = tile.Buf
 }
 
+// increments to the next feature
 func (layer *Layer) Next() bool {
 	return layer.feature_position < layer.Number_Features
 }
@@ -94,5 +93,3 @@ func (layer *Layer) Next() bool {
 func (layer *Layer) Reset() {
 	layer.feature_position = 0
 }
-
-
