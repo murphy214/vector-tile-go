@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"github.com/murphy214/pbf"
 	"reflect"
 )
 
@@ -59,18 +60,23 @@ func GetValInt(index int, typeval DataType) int {
 type TagWriter struct {
 	StringValues []string
 	StringMap    map[string]int
+	StringBytes []byte 
 
 	FloatValues []float32
 	FloatMap    map[float32]int
-
+	FloatBytes []byte
+	
 	DoubleValues []float64
 	DoubleMap    map[float64]int
+	DoubleBytes []byte
 
 	IntValues []int
 	IntMap    map[int]int
+	IntBytes []byte
 
 	Keys    []string
 	KeysMap map[string]int
+	KeysBytes []byte
 }
 
 func NewTagWriter() *TagWriter {
@@ -90,6 +96,10 @@ func (tagwriter *TagWriter) AddKey(key string) int {
 		valint = len(tagwriter.Keys)
 		tagwriter.KeysMap[key] = valint
 		tagwriter.Keys = append(tagwriter.Keys, key)
+		tagwriter.KeysBytes = append(tagwriter.KeysBytes, 26)
+		tagwriter.KeysBytes = append(tagwriter.KeysBytes, pbf.EncodeVarint(uint64(len(key)))...)
+		tagwriter.KeysBytes = append(tagwriter.KeysBytes, []byte(key)...)
+	
 	}
 	return valint
 }
@@ -108,6 +118,9 @@ func (tagwriter *TagWriter) AddValue(val interface{}) (int, bool) {
 			valint = GetValInt(len(tagwriter.StringMap), StringType)
 			tagwriter.StringMap[myval] = valint
 			tagwriter.StringValues = append(tagwriter.StringValues, myval)
+			tagwriter.StringBytes = append(tagwriter.StringBytes, 50)
+			tagwriter.StringBytes = append(tagwriter.StringBytes, pbf.EncodeVarint(uint64(len(myval)))...)
+			tagwriter.StringBytes = append(tagwriter.StringBytes, []byte(myval)...)
 		}
 		return valint, true
 	case reflect.Float32:
@@ -117,6 +130,7 @@ func (tagwriter *TagWriter) AddValue(val interface{}) (int, bool) {
 			valint = GetValInt(len(tagwriter.FloatMap), FloatType)
 			tagwriter.FloatMap[myval] = valint
 			tagwriter.FloatValues = append(tagwriter.FloatValues, myval)
+			tagwriter.FloatBytes = append(tagwriter.FloatBytes, FloatVal32Raw(myval)...)
 		}
 		return valint, true
 	case reflect.Float64:
@@ -126,6 +140,7 @@ func (tagwriter *TagWriter) AddValue(val interface{}) (int, bool) {
 			valint = GetValInt(len(tagwriter.DoubleMap), DoubleType)
 			tagwriter.DoubleMap[myval] = valint
 			tagwriter.DoubleValues = append(tagwriter.DoubleValues, myval)
+			tagwriter.DoubleBytes = append(tagwriter.DoubleBytes,FloatVal64Raw(myval)...)
 		}
 		return valint, true
 
@@ -136,15 +151,17 @@ func (tagwriter *TagWriter) AddValue(val interface{}) (int, bool) {
 			valint = GetValInt(len(tagwriter.IntMap), UintType)
 			tagwriter.IntMap[myval] = valint
 			tagwriter.IntValues = append(tagwriter.IntValues, myval)
+			tagwriter.IntBytes = append(tagwriter.IntBytes,IntVal64Raw(myval)...)
 		}
 		return valint, true
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		myval := int(vv.Int())
+		myval := int(vv.Uint())
 		valint, boolval := tagwriter.IntMap[myval]
 		if !boolval {
 			valint = GetValInt(len(tagwriter.IntMap), UintType)
 			tagwriter.IntMap[myval] = valint
 			tagwriter.IntValues = append(tagwriter.IntValues, myval)
+			tagwriter.IntBytes = append(tagwriter.IntBytes,IntVal64Raw(myval)...)
 		}
 		return valint, true
 	case reflect.Bool:

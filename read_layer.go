@@ -154,7 +154,7 @@ func (tile *Tile) NewLayer(endpos int) {
 		}	
 		
 		// reading the dense attribute scalings
-		if key ==  11 && val == 2 {
+		for key ==  11 && val == 2 {
 			size := tile.Buf.ReadVarint()
 			endpos := tile.Buf.Pos + size 
 			
@@ -180,9 +180,11 @@ func (tile *Tile) NewLayer(endpos int) {
 				}
 				layer.AttributeScalings = append(layer.AttributeScalings,tempscaling)
 			}
+			//key,val = tile.Buf.ReadKey()				
+			tile.Buf.Pos = endpos
 			key,val = tile.Buf.ReadKey()				
-
 		}
+ 
 
 		// operation to get tileid out if applicable
 		var tilex,tiley,tilez int
@@ -191,7 +193,6 @@ func (tile *Tile) NewLayer(endpos int) {
 			tilex = int(tile.Buf.ReadVarint())
 			key, val = tile.Buf.ReadKey()
 		}
-
 		// reading tiley 
 		if key == 13 && val == 0 {
 			tiley = int(tile.Buf.ReadVarint())
@@ -206,7 +207,6 @@ func (tile *Tile) NewLayer(endpos int) {
 
 		// adding tileid to layer
 		layer.TileID = m.TileID{int64(tilex),int64(tiley),uint64(tilez)}
-		
 
 
 

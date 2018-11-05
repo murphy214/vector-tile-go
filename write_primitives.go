@@ -64,6 +64,140 @@ func WritePackedUint32_2(geom []uint32) []byte {
 	return buf[startpos:pos]
 }
 
+
+// writes a packed uint32 number
+// this function was benchmarked against several implementations
+// to reduce allocations, i found this one to be the best
+func WritePackedInt(geom []int) []byte {
+	buf := make([]byte, len(geom)*8+8)
+	pos := 8
+	for _, x := range geom {
+		if x < 128 {
+			buf[pos] = uint8(x)
+			x >>= 7
+			pos++
+		} else if x < 16384 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else if x < 2097152 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else if x < 268435456 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else if x < 34359738368 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else if x < 4398046511104 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else if x < 562949953421312 {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		} else {
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = 0x80 | uint8(x&0x7F)
+			x >>= 7
+			pos++
+			buf[pos] = uint8(x)
+			pos++
+		}
+
+	}
+	beg := pbf.EncodeVarint(uint64(pos - 8))
+	startpos := 8 - len(beg)
+	currentpos := startpos
+	i := 0
+	for currentpos < 8 {
+		buf[currentpos] = beg[i]
+		i++
+		currentpos++
+	}
+
+	return buf[startpos:pos]
+}
+
+
 // writes a packed uint32 number
 // this function was benchmarked against several implementations
 // to reduce allocations, i found this one to be the best
@@ -182,6 +316,18 @@ func FloatVal32(f float32) []byte {
 	return append([]byte{34, 5, 21}, buf...)
 }
 
+
+// writes a float32 into a float value
+func FloatVal32Raw(f float32) []byte {
+	buf := make([]byte, 4)
+	n := math.Float32bits(f)
+	buf[3] = byte(n >> 24)
+	buf[2] = byte(n >> 16)
+	buf[1] = byte(n >> 8)
+	buf[0] = byte(n)
+	return buf
+}
+
 // writes a float64 into a double value
 func FloatVal64(f float64) []byte {
 	buf := make([]byte, 8)
@@ -195,6 +341,50 @@ func FloatVal64(f float64) []byte {
 	buf[1] = byte(n >> 8)
 	buf[0] = byte(n)
 	return append([]byte{34, 9, 25}, buf...)
+}
+
+// writes a float64 into a double value
+func FloatVal64Raw(f float64) []byte {
+	buf := make([]byte, 8)
+	n := math.Float64bits(f)
+	buf[7] = byte(n >> 56)
+	buf[6] = byte(n >> 48)
+	buf[5] = byte(n >> 40)
+	buf[4] = byte(n >> 32)
+	buf[3] = byte(n >> 24)
+	buf[2] = byte(n >> 16)
+	buf[1] = byte(n >> 8)
+	buf[0] = byte(n)
+	return buf
+}
+
+// writes a float64 into a double value
+func IntVal64(n int) []byte {
+	buf := make([]byte, 8)
+	buf[7] = byte(n >> 56)
+	buf[6] = byte(n >> 48)
+	buf[5] = byte(n >> 40)
+	buf[4] = byte(n >> 32)
+	buf[3] = byte(n >> 24)
+	buf[2] = byte(n >> 16)
+	buf[1] = byte(n >> 8)
+	buf[0] = byte(n)
+	return append([]byte{34, 9, 25}, buf...)
+}
+
+
+// writes a float64 into a double value
+func IntVal64Raw(n int) []byte {
+	buf := make([]byte, 8)
+	buf[7] = byte(n >> 56)
+	buf[6] = byte(n >> 48)
+	buf[5] = byte(n >> 40)
+	buf[4] = byte(n >> 32)
+	buf[3] = byte(n >> 24)
+	buf[2] = byte(n >> 16)
+	buf[1] = byte(n >> 8)
+	buf[0] = byte(n)
+	return buf
 }
 
 // writes a value and returns the bytes of such value

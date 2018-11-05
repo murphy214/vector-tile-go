@@ -11,6 +11,7 @@ const mercatorPole = 20037508.34
 type Cursor struct {
 	Geometry   []uint32
 	LastPoint  []int32
+	Elevations []uint32
 	Bounds     m.Extrema
 	DeltaX     float64 // delta between bounds
 	DeltaY     float64 // delta between bounds
@@ -18,6 +19,7 @@ type Cursor struct {
 	Extent     int32
 	Bds        m.Extrema
 	ExtentBool bool
+	ZBool bool
 }
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
@@ -107,6 +109,9 @@ func (cur *Cursor) MovePoint(point []int32) {
 	cur.Geometry = append(cur.Geometry, moveTo(1))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[0]-cur.LastPoint[0])))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[1]-cur.LastPoint[1])))
+	if cur.ZBool {
+		cur.Elevations = append(cur.Elevations,uint32(paramEnc(point[2]-cur.LastPoint[2])))
+	}
 	cur.LastPoint = point
 	cur.Count = 0
 }
@@ -117,7 +122,11 @@ func (cur *Cursor) LinePoint(point []int32) {
 	if ((deltax == 0) && (deltay == 0)) == false {
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltax)))
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltay)))
+		if cur.ZBool {
+			cur.Elevations = append(cur.Elevations,uint32(paramEnc(point[2]-cur.LastPoint[2])))
+		}
 		cur.Count = cur.Count + 1
+
 	}
 	cur.LastPoint = point
 }
@@ -158,10 +167,12 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 // reverses the coord list
 func reverse(coord [][]int32) [][]int32 {
 	current := len(coord) - 1
-	newlist := [][]int32{}
+	newlist := make([][]int32,len(coord))
+	i := 0
 	for current != -1 {
-		newlist = append(newlist, coord[current])
+		newlist[i] = coord[current]
 		current = current - 1
+		i++
 	}
 	return newlist
 }
@@ -284,6 +295,12 @@ func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 
 // converts a single point from a coordinate to a tile point
 func (cur *Cursor) SinglePoint(point []float64) []int32 {
+	var elevation int32
+	if len(point) == 3 {
+		cur.ZBool = true
+		elevation = int32(point[2])
+	}
+ 
 	if cur.Bounds.N < point[1] {
 		cur.Bounds.N = point[1]
 	} else if cur.Bounds.S > point[1] {
@@ -319,6 +336,10 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 		if yval < 0 {
 			yval = 0
 		}
+	}
+
+	if cur.ZBool {
+		return []int32{xval,yval,elevation}
 	}
 
 	return []int32{xval, yval}
