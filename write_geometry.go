@@ -20,6 +20,13 @@ type Cursor struct {
 	Bds        m.Extrema
 	ExtentBool bool
 	ZBool bool
+	SplineKnots []int
+	SplineDegree int
+	Scaling *Scaling
+	CurrentElevation float64
+	GeometricAttributesBool bool
+	Position int
+	GeometricAttributesIndexes []int
 }
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
@@ -34,6 +41,7 @@ func TrimPolygonFloat(lines [][][]float64) [][][]float64 {
 	}
 	return lines
 }
+
 func TrimPolygon(lines [][][]int32) [][][]int32 {
 	for pos, line := range lines {
 		f, l := line[0], line[len(line)-1]
@@ -105,17 +113,30 @@ func paramEnc(value int32) int32 {
 	return (value << 1) ^ (value >> 31)
 }
 
+// gets the elevation
+func (cur *Cursor) Elevation(value float64) uint32 {
+	delta_encoded_value :=  float64((value - cur.Scaling.Base) / cur.Scaling.Multiplier) - float64(cur.Scaling.Offset)
+	delta_encoded_value = math.Round(delta_encoded_value+.5)
+	return uint32(paramEnc(int32(delta_encoded_value)+1))
+}
+
+// simple move to command
 func (cur *Cursor) MovePoint(point []int32) {
 	cur.Geometry = append(cur.Geometry, moveTo(1))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[0]-cur.LastPoint[0])))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[1]-cur.LastPoint[1])))
 	if cur.ZBool {
-		cur.Elevations = append(cur.Elevations,uint32(paramEnc(point[2]-cur.LastPoint[2])))
+		cur.Elevations = append(cur.Elevations,cur.Elevation(cur.CurrentElevation))
 	}
+	if cur.GeometricAttributesBool {
+		cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes,cur.Position)
+	}
+	cur.Position++
 	cur.LastPoint = point
 	cur.Count = 0
 }
 
+// simple line to command
 func (cur *Cursor) LinePoint(point []int32) {
 	deltax := point[0] - cur.LastPoint[0]
 	deltay := point[1] - cur.LastPoint[1]
@@ -123,11 +144,15 @@ func (cur *Cursor) LinePoint(point []int32) {
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltax)))
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltay)))
 		if cur.ZBool {
-			cur.Elevations = append(cur.Elevations,uint32(paramEnc(point[2]-cur.LastPoint[2])))
+			cur.Elevations = append(cur.Elevations,cur.Elevation(cur.CurrentElevation))
+		}
+		if cur.GeometricAttributesBool {
+			cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes,cur.Position)
 		}
 		cur.Count = cur.Count + 1
-
+		
 	}
+	cur.Position++
 	cur.LastPoint = point
 }
 
@@ -246,6 +271,8 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	newcur.MakeLine(newlist)
 	newgeom := newcur.Geometry
 	newgeom = append(newgeom, closePath(1))
+	cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes)
+	cur.Position++
 	cur.Geometry = append(cur.Geometry, newgeom...)
 	cur.LastPoint = newlist[len(newlist)-1]
 
@@ -261,6 +288,8 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 	cur.MakeLine(coord)
 	//cur.Geometry = append(cur.Geometry, cur.Geometry...)
 	cur.Geometry = append(cur.Geometry, closePath(1))
+	cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes)
+	cur.Position++
 	// if multiple rings exist proceed to add those also
 	if len(coords) > 1 {
 		for _, coord := range coords[1:] {
@@ -269,6 +298,8 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 			newcur.MakeLine(coord)
 			newgeom := newcur.Geometry
 			newgeom = append(newgeom, closePath(1))
+			cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes)
+			cur.Position++
 			cur.Geometry = append(cur.Geometry, newgeom...)
 			cur.LastPoint = coord[len(coord)-1]
 		}
@@ -295,10 +326,9 @@ func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 
 // converts a single point from a coordinate to a tile point
 func (cur *Cursor) SinglePoint(point []float64) []int32 {
-	var elevation int32
 	if len(point) == 3 {
 		cur.ZBool = true
-		elevation = int32(point[2])
+		cur.CurrentElevation = point[2]
 	}
  
 	if cur.Bounds.N < point[1] {
@@ -338,17 +368,18 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 		}
 	}
 
-	if cur.ZBool {
-		return []int32{xval,yval,elevation}
-	}
-
 	return []int32{xval, yval}
 }
 
 func (cur *Cursor) MakePointFloat(point []float64) {
 	newpoint := cur.SinglePoint(point)
-
-	coords := []int32{newpoint[0], newpoint[1]}
+	var coords []int32
+	if cur.ZBool {
+		cur.CurrentElevation = point[2]
+		coords = []int32{newpoint[0], newpoint[1]}
+	} else {
+		coords = []int32{newpoint[0], newpoint[1]}
+	}
 	cur.Geometry = []uint32{moveTo(uint32(1))}
 	cur.LinePoint(coords)
 

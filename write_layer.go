@@ -38,6 +38,7 @@ type Config struct {
 	Version    int      // version number will assume 15 if 0
 	ReduceBool bool
 	ExtentBool bool
+	ElevationScaling *Scaling
 }
 
 // creates a new layer
@@ -50,7 +51,7 @@ func NewLayer(tileid m.TileID, name string) LayerWrite {
 
 // a function for creatnig a new conifguratoin
 func NewConfig(layername string, tileid m.TileID) Config {
-	return Config{Name: layername, TileID: tileid, ExtentBool: true}
+	return Config{Name: layername, TileID: tileid, ExtentBool: true,ElevationScaling:NewScaling()}
 }
 
 // creates a layer from a configuration
@@ -76,7 +77,7 @@ func NewLayerConfig(config Config) LayerWrite {
 		Extent:     int(config.Extent),
 		ReduceBool: config.ReduceBool,
 		TagWriter:NewTagWriter(),
-		ElevationScaling:NewScaling(),
+		ElevationScaling:config.ElevationScaling,
 	}
 }
 
@@ -125,6 +126,10 @@ func (layer *LayerWrite) RefreshCursor() {
 	layer.Cursor.Geometry = []uint32{}
 	layer.Cursor.Bds = startbds
 	layer.Cursor.ZBool = false
+	layer.Cursor.CurrentElevation = 0.0
+	layer.Cursor.Elevations = []uint32{}
+	layer.Cursor.GeometricAttributesBool = false
+	layer.Cursor.GeometricAttributesIndexes = []int{}
 }
 
 // adding wscaling
@@ -170,83 +175,8 @@ func WriteLayer(features []*geojson.Feature, config Config) (total_bytes []byte,
 	for _, feat := range features {
 		mylayer.AddFeature(feat)
 	}
-
-	// writing name
-	if len(mylayer.Name) > 0 {
-		total_bytes = append(total_bytes, 10)
-		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(len(mylayer.Name)))...)
-		total_bytes = append(total_bytes, []byte(mylayer.Name)...)
-	}
-
-	// appending features
-	total_bytes = append(total_bytes, mylayer.Features...)
-
-	// appending keys
-	total_bytes = append(total_bytes, mylayer.TagWriter.KeysBytes...)
-
-	// appending values
-	total_bytes = append(total_bytes, mylayer.Values_Bytes...)
-
-	// appending extra config values
-	if mylayer.Extent != 4096 {
-		total_bytes = append(total_bytes, 40)
-		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(mylayer.Extent))...)
-	}
-
-	// adding string bytes to total bytes 
-	total_bytes = append(total_bytes,mylayer.TagWriter.StringBytes...)
-
-	// adding float bytes to string bytes
-	total_bytes = append(total_bytes,58)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(len(mylayer.TagWriter.FloatBytes)))...)
-	total_bytes = append(total_bytes,mylayer.TagWriter.FloatBytes...)
-
-	// adding double bytes
-	total_bytes = append(total_bytes,66)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(len(mylayer.TagWriter.DoubleBytes)))...)
-	total_bytes = append(total_bytes,mylayer.TagWriter.DoubleBytes...)
-
-	// adding double bytes
-	total_bytes = append(total_bytes,74)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(len(mylayer.TagWriter.IntBytes)))...)
-	total_bytes = append(total_bytes,mylayer.TagWriter.IntBytes...)
+	total_bytes = mylayer.Flush()
 	
-	// adding single scaling attribute 
-	val := Wscaling(mylayer.ElevationScaling)
-	val = append(pbf.EncodeVarint(uint64(len(val))),val...)
-	val = append([]byte{82},val...)
-	total_bytes = append(total_bytes,val...) 
-
-	// adding the attribute level scaling if possible
-	if len(mylayer.AttributeScalings) == len(features) {
-		val := []byte{}
-		for _,i := range mylayer.AttributeScalings {
-			val = append(val,Wscaling(i)...)
-		}	
-		val = append(pbf.EncodeVarint(uint64(len(val))),val...)
-		val = append([]byte{90},val...)
-		total_bytes = append(total_bytes,val...) 
-	}
-
-	// writing tilex
-	total_bytes = append(total_bytes,96)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(mylayer.TileID.X))...)
-	
-	// writing y 
-	total_bytes = append(total_bytes,104)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(mylayer.TileID.Y))...)
-
-	// writing zoom level
-	total_bytes = append(total_bytes,112)
-	total_bytes = append(total_bytes,pbf.EncodeVarint(uint64(mylayer.TileID.Z))...)
-
-	// writing version
-	total_bytes = append(total_bytes, 120)
-	total_bytes = append(total_bytes, byte(mylayer.Version))
-
-	// finally wrapping up the layer in a varint for the size
-	beg := append([]byte{26}, pbf.EncodeVarint(uint64(len(total_bytes)))...)
-	total_bytes = append(beg, total_bytes...)
 	return total_bytes, err
 }
 
