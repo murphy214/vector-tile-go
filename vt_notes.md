@@ -17,5 +17,6 @@
 ```
 value = base + multiplier * (delta_encoded_value + offset) 
 value - base = multiplier * (delta_encoded_value + offset)
+
 delta_encoded_value  = ((value - base) / multiplier) - offset 
 ```

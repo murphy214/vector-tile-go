@@ -16,6 +16,7 @@ type Feature struct {
 	geometry_pos int
 	extent       int
 	geom_int     int
+	
 	Buf          *pbf.PBF
 }
 
