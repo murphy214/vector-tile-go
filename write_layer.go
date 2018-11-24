@@ -137,8 +137,10 @@ func (layer *LayerWrite) RefreshCursor() {
 	layer.Cursor.CurrentElevation = 0.0
 	layer.Cursor.Elevations = []uint32{}
 	layer.Cursor.GeometricAttributesBool = false
-	layer.Cursor.GeometricAttributesIndexes = []int{}
+	layer.Cursor.NewGeometricAttributesMap =  map[string][]interface{}{}
+	layer.Cursor.GeometricAttributesMap = map[string][]interface{}{}
 	layer.Cursor.MovePointBool = true
+	layer.Cursor.IsTrimmed = false
 }
 
 // adding wscaling

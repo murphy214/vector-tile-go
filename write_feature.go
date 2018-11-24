@@ -34,6 +34,18 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		}
 	}
 
+	// parsing out geometry attributes 
+	// then setting the geometry attributes to the cursor object
+	gattrs,boolval := feature.Properties["geometric_attributes"]
+	layer.Cursor.GeometricAttributesBool = boolval
+	if boolval {
+		var gattrsmap map[string][]interface{}
+		gattrsmap,boolval = gattrs.(map[string][]interface{})
+		if boolval {
+			layer.Cursor.SetCursorGeometricAttributes(gattrsmap)
+			delete(feature.Properties,"geometric_attributes")
+		}
+	}
 
 	if feature.Geometry != nil {
 		// do the geometry type shit here
@@ -48,18 +60,6 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		}
 		array5 = []byte{24, geomtype}
 		totalsize+=len(array5)
-	}
-
-	// parsing out geometry attributes 
-	gattrs,boolval := feature.Properties["geometric_attributes"]
-	layer.Cursor.GeometricAttributesBool = boolval
-
-	var gattrsmap map[string]interface{}
-	if boolval {
-		gattrsmap,boolval = gattrs.(map[string]interface{})
-		if boolval {
-			delete(feature.Properties,"geometric_attributes")
-		}
 	}
 
 	var abort_bool bool
@@ -96,21 +96,6 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		totalsize+=(len(array6)+len(array7))
 	}
 
-
-	// iterating through gattrsmap to trim it up 
-	// against the geometry values that were added previously  
-	for k,v := range gattrsmap {
-		vlist,boolval := v.([]interface{})
-
-		if boolval {
-			newlist := make([]interface{},len(layer.Cursor.GeometricAttributesIndexes))
-			for pos,i := range layer.Cursor.GeometricAttributesIndexes {
-				newlist[pos] = vlist[i]
-			}
-			gattrsmap[k] = newlist
-		}	
-	}
-
 	// adding the normal attributes tags
 	if len(feature.Properties) > 0 {
 		// do the tag shit here
@@ -120,9 +105,13 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	}
 
 	// adding the geometric attriburtes map attributes map 
-	if len(gattrsmap) > 0 {
+	if len(layer.Cursor.NewGeometricAttributesMap) > 0 {
 		array10 = []byte{50} // the key val
-		array11 = tags.WritePackedInt(layer.TagWriter.MakeProperties(gattrsmap))	
+		array11 = tags.WritePackedInt(
+			layer.TagWriter.MakeProperties(
+				DumpInterfaceMap(layer.Cursor.NewGeometricAttributesMap),
+			),
+		)
 		totalsize+=(len(array10)+len(array11))
 	}
 
