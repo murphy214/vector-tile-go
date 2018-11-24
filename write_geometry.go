@@ -27,6 +27,7 @@ type Cursor struct {
 	GeometricAttributesBool bool
 	Position int
 	GeometricAttributesIndexes []int
+	MovePointBool bool
 }
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
@@ -71,7 +72,7 @@ func NewCursor(tileid m.TileID) *Cursor {
 	bound := m.Bounds(tileid)
 	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
-	cur := Cursor{LastPoint: []int32{0, 0}, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: int32(4096), Bds: startbds}
+	cur := Cursor{LastPoint: []int32{0, 0},MovePointBool:true, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: int32(4096), Bds: startbds}
 	cur = ConvertCursor(cur)
 	return &cur
 }
@@ -80,7 +81,7 @@ func NewCursorExtent(tileid m.TileID, extent int32) *Cursor {
 	bound := m.Bounds(tileid)
 	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
-	cur := Cursor{LastPoint: []int32{0, 0}, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: extent, Bds: startbds}
+	cur := Cursor{LastPoint: []int32{0, 0},MovePointBool:true, Bounds: bound, DeltaX: deltax, DeltaY: deltay, Count: 0, Extent: extent, Bds: startbds}
 	cur = ConvertCursor(cur)
 	return &cur
 }
@@ -90,7 +91,11 @@ func ConvertPoint(point []float64) []float64 {
 
 	y := math.Log(math.Tan((90.0+point[1])*math.Pi/360.0)) / math.Pi * mercatorPole
 	y = math.Max(-mercatorPole, math.Min(y, mercatorPole))
-	return []float64{x, y}
+	if len(point)==3 {
+		return []float64{x, y,point[2]}
+	} else {
+		return []float64{x,y}
+	}
 }
 
 func cmdEnc(id uint32, count uint32) uint32 {
@@ -116,8 +121,7 @@ func paramEnc(value int32) int32 {
 // gets the elevation
 func (cur *Cursor) Elevation(value float64) uint32 {
 	delta_encoded_value :=  float64((value - cur.Scaling.Base) / cur.Scaling.Multiplier) - float64(cur.Scaling.Offset)
-	delta_encoded_value = math.Round(delta_encoded_value+.5)
-	return uint32(paramEnc(int32(delta_encoded_value)+1))
+	return uint32(paramEnc(int32(delta_encoded_value)))
 }
 
 // simple move to command
@@ -267,13 +271,15 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 		newlist = reverse(newlist)
 	}
 
-	newcur := Cursor{LastPoint: cur.LastPoint, Bounds: cur.Bounds, DeltaX: cur.DeltaX, DeltaY: cur.DeltaY}
+	newcur := Cursor{LastPoint: cur.LastPoint, Bounds: cur.Bounds, DeltaX: cur.DeltaX, DeltaY: cur.DeltaY,CurrentElevation:cur.CurrentElevation}
 	newcur.MakeLine(newlist)
-	newgeom := newcur.Geometry
+	newgeom,neweles := newcur.Geometry,newcur.Elevations
 	newgeom = append(newgeom, closePath(1))
-	cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes)
+
+	cur.GeometricAttributesIndexes = append(cur.GeometricAttributesIndexes,newcur.GeometricAttributesIndexes...)
 	cur.Position++
 	cur.Geometry = append(cur.Geometry, newgeom...)
+	cur.Elevations = append(cur.Elevations,neweles...)
 	cur.LastPoint = newlist[len(newlist)-1]
 
 }
@@ -326,11 +332,13 @@ func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 
 // converts a single point from a coordinate to a tile point
 func (cur *Cursor) SinglePoint(point []float64) []int32 {
-	if len(point) == 3 {
+	if len(point) == 3 && cur.MovePointBool {
 		cur.ZBool = true
+		cur.MovePointBool = false
+	}
+	if cur.ZBool {
 		cur.CurrentElevation = point[2]
 	}
- 
 	if cur.Bounds.N < point[1] {
 		cur.Bounds.N = point[1]
 	} else if cur.Bounds.S > point[1] {
@@ -368,7 +376,7 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 		}
 	}
 
-	return []int32{xval, yval}
+	return []int32{xval, yval,int32(cur.CurrentElevation)}
 }
 
 func (cur *Cursor) MakePointFloat(point []float64) {

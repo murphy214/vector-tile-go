@@ -5,7 +5,7 @@ import (
 	"reflect"
 	//"fmt"
 	//"github.com/murphy214/geobuf/geobuf_raw"
-
+	"github.com/murphy214/vector-tile-go/tags"
 	p "github.com/murphy214/pbf"
 )
 
@@ -52,12 +52,15 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 
 	// parsing out geometry attributes 
 	gattrs,boolval := feature.Properties["geometric_attributes"]
+	layer.Cursor.GeometricAttributesBool = boolval
+
 	var gattrsmap map[string]interface{}
-	gattrsmap,boolval = gattrs.(map[string]interface{})
 	if boolval {
-		delete(feature.Properties,"geometric_attributes")
+		gattrsmap,boolval = gattrs.(map[string]interface{})
+		if boolval {
+			delete(feature.Properties,"geometric_attributes")
+		}
 	}
-	layer.Cursor.GeometricAttributesBool = true
 
 	var abort_bool bool
 	if feature.Geometry != nil {
@@ -65,30 +68,30 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		case "Point":
 			array6 = []byte{34}
 			layer.Cursor.MakePointFloat(feature.Geometry.Point)
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "LineString":
 			array6 = []byte{34}
 			layer.Cursor.MakeLineFloat(feature.Geometry.LineString)
 			if layer.Cursor.Count == 0 {
 				abort_bool = true
 			}
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "Polygon":
 			array6 = []byte{34}
 			layer.Cursor.MakePolygonFloat(feature.Geometry.Polygon)
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiPoint":
 			array6 = []byte{34}
 			layer.Cursor.MakeMultiPointFloat(feature.Geometry.MultiPoint)
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiLineString":
 			array6 = []byte{34}
 			layer.Cursor.MakeMultiLineFloat(feature.Geometry.MultiLineString)
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiPolygon":
 			array6 = []byte{34}
 			layer.Cursor.MakeMultiPolygonFloat(feature.Geometry.MultiPolygon)
-			array7 = WritePackedUint32(layer.Cursor.Geometry)
+			array7 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		}
 		totalsize+=(len(array6)+len(array7))
 	}
@@ -112,28 +115,28 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	if len(feature.Properties) > 0 {
 		// do the tag shit here
 		array8 = []byte{42} // the key val
-		array9 = WritePackedInt(layer.TagWriter.MakeProperties(feature.Properties))
+		array9 = tags.WritePackedInt(layer.TagWriter.MakeProperties(feature.Properties))
 		totalsize+=(len(array8)+len(array9))
 	}
 
 	// adding the geometric attriburtes map attributes map 
 	if len(gattrsmap) > 0 {
 		array10 = []byte{50} // the key val
-		array11 = WritePackedInt(layer.TagWriter.MakeProperties(gattrsmap))	
+		array11 = tags.WritePackedInt(layer.TagWriter.MakeProperties(gattrsmap))	
 		totalsize+=(len(array10)+len(array11))
 	}
 
 	// adding elevations
 	if len(layer.Cursor.Elevations) > 0 {
 		array12 = []byte{58}
-		array13 = WritePackedUint32(layer.Cursor.Elevations)
+		array13 = tags.WritePackedUint32(layer.Cursor.Elevations)
 		totalsize+=(len(array12)+len(array13))
 	}
 
 	// adding spline knots
 	if len(layer.Cursor.SplineKnots) > 0 {
 		array14 = []byte{66}
-		array15 = WritePackedInt(layer.Cursor.SplineKnots)
+		array15 = tags.WritePackedInt(layer.Cursor.SplineKnots)
 		totalsize+=(len(array14)+len(array15))
 	}
 
@@ -159,7 +162,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 		array1 = []byte{18}
 		//array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
 		array2 = p.EncodeVarint(uint64(totalsize))
-		layer.Features = append(layer.Features, AppendAll(
+		layer.Features = append(layer.Features, tags.AppendAll(
 			array1,
 			array2, 
 			array3, 
@@ -199,7 +202,7 @@ func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, 
 	if len(properties) > 0 {
 		// do the tag shit here
 		array5 = []byte{18} // the key val
-		array6 = WritePackedUint32(layer.GetTags(properties))
+		array6 = tags.WritePackedUint32(layer.GetTags(properties))
 	}
 	if geomtype != 0 {
 		// do the geometry type shit here
@@ -208,13 +211,13 @@ func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, 
 	// adding geometry
 	if len(geometry) > 0 {
 		array8 = []byte{34}
-		array9 = WritePackedUint32(geometry)
+		array9 = tags.WritePackedUint32(geometry)
 	}
 
 	// on the off chane one of my lines contains one point
 	array1 = []byte{18}
 	array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
-	layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+	layer.Features = append(layer.Features, tags.AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
 }
 
 // adding a geobuf byte array to a given layer
@@ -237,7 +240,7 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		pbf.ReadVarint()
 		array4 = pbf.Pbf[startpos:pbf.Pos]
 	}
-	tags := []uint32{}
+	tagss := []uint32{}
 	for key == 2 && val == 2 {
 		// starting properties shit here
 
@@ -249,7 +252,7 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		if keybool == false {
 			keytag = layer.AddKey(keyvalue)
 		}
-		tags = append(tags, keytag)
+		tagss = append(tagss, keytag)
 
 		pbf.Pos += 1
 		pbf.ReadVarint()
@@ -275,14 +278,14 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		if valuebool == false {
 			valuetag = layer.AddValue(value)
 		}
-		tags = append(tags, valuetag)
+		tagss = append(tagss, valuetag)
 
 		pbf.Pos = endpos
 		key, val = pbf.ReadKey()
 	}
 
 	array5 = []byte{18} // the key val
-	array6 = WritePackedUint32(tags)
+	array6 = tags.WritePackedUint32(tagss)
 	var geomtype string
 	if key == 3 && val == 0 {
 		switch int(pbf.Pbf[pbf.Pos]) {
@@ -324,37 +327,37 @@ func (layer *LayerWrite) AddFeatureGeobuf(bytevals []byte) {
 		case "Point":
 			array8 = []byte{34}
 			layer.Cursor.MakePointFloat(pbf.ReadPoint(endpos))
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "LineString":
 			array8 = []byte{34}
 			layer.Cursor.MakeLineFloat(pbf.ReadLine(0, endpos))
 			if layer.Cursor.Count == 0 {
 				abort_bool = true
 			}
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "Polygon":
 			array8 = []byte{34}
 			layer.Cursor.MakePolygonFloat(pbf.ReadPolygon(endpos))
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiPoint":
 			array8 = []byte{34}
 			layer.Cursor.MakeMultiPointFloat(pbf.ReadLine(0, endpos))
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiLineString":
 			array8 = []byte{34}
 			layer.Cursor.MakeMultiLineFloat(pbf.ReadPolygon(endpos))
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		case "MultiPolygon":
 			array8 = []byte{34}
 			layer.Cursor.MakeMultiPolygonFloat(pbf.ReadMultiPolygon(endpos))
-			array9 = WritePackedUint32(layer.Cursor.Geometry)
+			array9 = tags.WritePackedUint32(layer.Cursor.Geometry)
 		}
 		key, val = pbf.ReadKey()
 	}
 	if !abort_bool {
 		array1 = []byte{18}
 		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
-		layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+		layer.Features = append(layer.Features, tags.AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
 	}
 
 }

@@ -2,6 +2,7 @@ package vt
 
 import (
 	"errors"
+	"github.com/murphy214/vector-tile-go/tags"
 	//"fmt"
 	g "github.com/murphy214/geobuf"
 	m "github.com/murphy214/mercantile"
@@ -24,7 +25,7 @@ type LayerWrite struct {
 	Features     []byte                 // the byte values of features
 	Cursor       *Cursor                // the cursor for adding geometries
 	ReduceBool   bool 
-	TagWriter *TagWriter // the tag writer
+	TagWriter *tags.TagWriter // the tag writer
 	ElevationScaling *Scaling
 	AttributeScalings []*Scaling
 
@@ -46,7 +47,14 @@ func NewLayer(tileid m.TileID, name string) LayerWrite {
 	keys_map := map[string]uint32{}
 	values_map := map[interface{}]uint32{}
 	cur := NewCursor(tileid)
-	return LayerWrite{TileID: tileid, Keys_Map: keys_map, Values_Map: values_map, Name: name, Cursor: cur,TagWriter:NewTagWriter(),ElevationScaling:NewScaling()}
+	return LayerWrite{TileID: tileid, 
+		Keys_Map: keys_map, 
+		Values_Map: values_map, 
+		Name: name, 
+		Cursor: cur,
+		TagWriter:tags.NewTagWriter(),
+		ElevationScaling:NewScaling(),
+	}
 }
 
 // a function for creatnig a new conifguratoin
@@ -76,7 +84,7 @@ func NewLayerConfig(config Config) LayerWrite {
 		Version:    config.Version,
 		Extent:     int(config.Extent),
 		ReduceBool: config.ReduceBool,
-		TagWriter:NewTagWriter(),
+		TagWriter:tags.NewTagWriter(),
 		ElevationScaling:config.ElevationScaling,
 	}
 }
@@ -93,7 +101,7 @@ func (layer *LayerWrite) AddKey(key string) uint32 {
 
 // adds a single value to a given
 func (layer *LayerWrite) AddValue(value interface{}) uint32 {
-	layer.Values_Bytes = append(layer.Values_Bytes, WriteValue(value)...)
+	layer.Values_Bytes = append(layer.Values_Bytes, tags.WriteValue(value)...)
 	myint := uint32(len(layer.Values_Map))
 	layer.Values_Map[value] = myint
 	return myint
@@ -130,6 +138,7 @@ func (layer *LayerWrite) RefreshCursor() {
 	layer.Cursor.Elevations = []uint32{}
 	layer.Cursor.GeometricAttributesBool = false
 	layer.Cursor.GeometricAttributesIndexes = []int{}
+	layer.Cursor.MovePointBool = true
 }
 
 // adding wscaling
@@ -141,11 +150,11 @@ func Wscaling(scaling *Scaling) []byte {
 	}
 	if scaling.Multiplier > 0 || true {
 		tot = append(tot,17)
-		tot = append(tot,FloatVal64Raw(scaling.Multiplier)...)
+		tot = append(tot,tags.FloatVal64Raw(scaling.Multiplier)...)
 	}
 	if scaling.Base > 0 || true {
 		tot = append(tot,25)
-		tot = append(tot,FloatVal64Raw(scaling.Base)...)
+		tot = append(tot,tags.FloatVal64Raw(scaling.Base)...)
 	}
 
 	return tot

@@ -5,6 +5,7 @@ import (
 	"errors"
 	m "github.com/murphy214/mercantile"
 	"github.com/murphy214/pbf"
+	"github.com/murphy214/vector-tile-go/tags"
 	"github.com/paulmach/go.geojson"
 	"math"
 )
@@ -16,7 +17,10 @@ type Feature struct {
 	geometry_pos int
 	extent       int
 	geom_int     int
-	
+	Elevations []float64
+	SplineKnots []int
+	SplineDegree float64
+	StringID string
 	Buf          *pbf.PBF
 }
 
@@ -75,7 +79,7 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 	endpos := layer.Buf.Pos + layer.Buf.ReadVarint()
 	//startpos := layer.Buf.Pos
 	feature = &Feature{Properties: map[string]interface{}{}}
-
+	var tagsbool bool
 	for layer.Buf.Pos < endpos {
 		key, val := layer.Buf.ReadKey()
 
@@ -83,28 +87,33 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 		if key == 1 && val == 0 {
 			feature.ID = int(layer.Buf.ReadUInt64())
 		}
+
 		// logic for handling tags
 		if key == 2 && val == 2 {
 			//fmt.Println(feature)
-			tags := layer.Buf.ReadPackedUInt32()
+			tagss := layer.Buf.ReadPackedUInt32()
 			i := 0
-			for i < len(tags) {
+			if len(tagss) > 2 {
+				tagsbool = true
+			}
+			for i < len(tagss) {
 				var key string
-				if len(layer.Keys) <= int(tags[i]) {
+				if len(layer.Keys) <= int(tagss[i]) {
 					key = ""
 				} else {
-					key = layer.Keys[tags[i]]
+					key = layer.Keys[tagss[i]]
 				}
 				var val interface{}
-				if len(layer.Values) <= int(tags[i+1]) {
+				if len(layer.Values) <= int(tagss[i+1]) {
 					val = ""
 				} else {
-					val = layer.Values[tags[i+1]]
+					val = layer.Values[tagss[i+1]]
 				}
 				feature.Properties[key] = val
 				i += 2
 			}
 		}
+
 		// logic for handling features
 		if key == 3 && val == 0 {
 			geom_type := int(layer.Buf.Varint()[0])
@@ -122,7 +131,53 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 		if key == 4 && val == 2 {
 			feature.geometry_pos = layer.Buf.Pos
 			size := layer.Buf.ReadVarint()
-			layer.Buf.Pos += size + 1
+			layer.Buf.Pos += size
+		}
+
+		// logic for handling atributes
+		if key == 5 && val == 2 {
+			tagss := layer.Buf.ReadPackedUInt64()
+			layer.TagReader.Reset(tagss)
+			if !tagsbool {
+				feature.Properties = layer.TagReader.ReadTags(tagss)
+			}
+		}
+
+		// logic for handling geomeric attributes
+		if key == 6 && val == 2 {
+			//fmt.Println(feature)
+			tagss := layer.Buf.ReadPackedUInt64()
+			layer.TagReader.Reset(tagss)
+			if len(tagss) > 0 {
+				feature.Properties[`geometric_attributes`] = layer.TagReader.ReadTags(tagss)
+			}
+		}
+
+		// logic for handling elevations
+		if key == 7 && val == 2 {
+			//fmt.Println(feature)
+			tagss := layer.Buf.ReadPackedUInt64()
+			// 
+			feature.Elevations = make([]float64,len(tagss))
+
+			for i,t := range tagss {
+				feature.Elevations[i] = layer.ElevationScaling.Base + layer.ElevationScaling.Multiplier * (tags.DeltaDim(t) + float64(layer.ElevationScaling.Offset))
+			}
+		}
+
+		// logic for handling geomeric spline knots
+		if key == 8 && val == 2 {
+			feature.SplineKnots = layer.Buf.ReadPackedUInt64()
+		}
+
+		// logic for handling geomeric spline degrees
+		if key == 9 && val == 0 {
+			feature.SplineDegree = float64(layer.Buf.ReadVarint())
+		}
+
+		// logic for handling feature string id
+		if key == 10 && val == 0 {
+			feature.StringID = layer.Buf.ReadString()
 		}
 	}
 	feature.extent = layer.Extent

@@ -3,6 +3,7 @@ package vt
 import (
 	"github.com/murphy214/pbf"
 	m "github.com/murphy214/mercantile"
+	"github.com/murphy214/vector-tile-go/tags"
 )
 
 // Formula for values in dimension:
@@ -33,7 +34,7 @@ type Layer struct {
 	Buf              *pbf.PBF
 
 	// stuff added in v3
-	TagReader *TagReader // the tag reader for the v3 spec
+	TagReader *tags.TagReader // the tag reader for the v3 spec
 	ElevationScaling *Scaling // the scaling dimension fro version 3
 	AttributeScalings []*Scaling // attribute scalingas
 	TileID m.TileID
@@ -41,7 +42,7 @@ type Layer struct {
 
 // creates a new layer
 func (tile *Tile) NewLayer(endpos int) {
-	layer := &Layer{StartPos: tile.Buf.Pos, EndPos: endpos,TagReader:&TagReader{},ElevationScaling:NewScaling()}
+	layer := &Layer{StartPos: tile.Buf.Pos, EndPos: endpos,TagReader:&tags.TagReader{},ElevationScaling:NewScaling()}
 	key, val := tile.Buf.ReadKey()
 	for tile.Buf.Pos < layer.EndPos {
 		if key == 1 && val == 2 {
@@ -94,7 +95,7 @@ func (tile *Tile) NewLayer(endpos int) {
 
 		// reading all the string values 
 		for key == 6 && val == 2 {
-			layer.TagReader.Keys = append(layer.TagReader.Keys, tile.Buf.ReadString())
+			layer.TagReader.StringValues = append(layer.TagReader.StringValues, tile.Buf.ReadString())
 			key, val = tile.Buf.ReadKey()
 		}
 
@@ -222,6 +223,7 @@ func (tile *Tile) NewLayer(endpos int) {
 		layer.Extent = 4096
 	}
 	layer.Number_Features = len(layer.features)
+	layer.TagReader.Keys = layer.Keys
 	tile.LayerMap[layer.Name] = layer
 	tile.Buf.Pos = endpos
 	layer.Buf = tile.Buf

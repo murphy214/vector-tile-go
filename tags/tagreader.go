@@ -1,4 +1,7 @@
-package vt
+package tags
+
+import (
+)
 
 // the tag reader struct
 type TagReader struct {
@@ -9,6 +12,12 @@ type TagReader struct {
 	Keys         []string
 	Tags         []int
 	Pos          int
+}
+
+// resets a given reader
+func (tagreader *TagReader) Reset(tt []int) {
+	tagreader.Tags = tt
+	tagreader.Pos = 0
 }
 
 // checks to see if we can get the next tag integer
@@ -34,6 +43,16 @@ func (tagreader *TagReader) TagVal() (int,int) {
 	val, val2 := tagreader.Tags[tagreader.Pos], tagreader.Tags[tagreader.Pos+1]
 	tagreader.Pos += 2
 	return val, val2
+}
+
+
+func DeltaDim(num int) float64 {
+	if num%2 == 1 {
+		return float64((num + 1) / -2)
+	} else {
+		return float64(num / 2)
+	}
+	return float64(0)
 }
 
 // Reads a tag
