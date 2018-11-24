@@ -12,21 +12,21 @@ const mercatorPole = 20037508.34
 // admittedly to much happens here, but I figure its more logical to 
 // have a master geometry structure that can be dictated by hgiher order layer or feature structures
 type Cursor struct {
-	Geometry   []uint32
-	LastPoint  []int32
-	Elevations []uint32
-	Bounds     m.Extrema
+	Geometry   []uint32 // holds the geomtry
+	LastPoint  []int32 // holds the last point
+	Elevations []uint32 // holds elevations
+	Bounds     m.Extrema // extrema structure
 	DeltaX     float64 // delta between bounds
 	DeltaY     float64 // delta between bounds
-	Count      uint32
-	Extent     int32
-	Bds        m.Extrema
-	ExtentBool bool
-	ZBool bool
-	SplineKnots []int
-	SplineDegree int
-	Scaling *Scaling
-	CurrentElevation float64
+	Count      uint32 // arbitary counter?
+	Extent     int32 // the extent 
+	Bds        m.Extrema  
+	ExtentBool bool // bool for whether or not to trim by the extent
+	ZBool bool // zbool to indicate whether to render the third dimmension
+	SplineKnots []int // the spline knots currently not supported
+	SplineDegree int // the spline degree currently not supported
+	Scaling *Scaling // the scaling structure for the given feature
+	CurrentElevation float64 // the current elevation
 	IsTrimmed bool // boolean for whether or not a polygon is trimmed.
 	GeometricAttributesBool bool // geometric attributes map
 	Position int // arbitary position
