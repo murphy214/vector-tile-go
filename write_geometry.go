@@ -1,40 +1,41 @@
 package vt
 
 import (
-	m "github.com/murphy214/mercantile"
 	"math"
+
+	m "github.com/murphy214/mercantile"
 	//pc "github.com/murphy214/polyclip"
 )
 
 const mercatorPole = 20037508.34
 
-// the cursor structure for rendering a geometry 
-// admittedly to much happens here, but I figure its more logical to 
+// the cursor structure for rendering a geometry
+// admittedly to much happens here, but I figure its more logical to
 // have a master geometry structure that can be dictated by hgiher order layer or feature structures
 type Cursor struct {
-	Geometry   []uint32 // holds the geomtry
-	LastPoint  []int32 // holds the last point
-	Elevations []uint32 // holds elevations
-	Bounds     m.Extrema // extrema structure
-	DeltaX     float64 // delta between bounds
-	DeltaY     float64 // delta between bounds
-	Count      uint32 // arbitary counter?
-	Extent     int32 // the extent 
-	Bds        m.Extrema  
-	ExtentBool bool // bool for whether or not to trim by the extent
-	ZBool bool // zbool to indicate whether to render the third dimmension
-	SplineKnots []int // the spline knots currently not supported
-	SplineDegree int // the spline degree currently not supported
-	Scaling *Scaling // the scaling structure for the given feature
-	CurrentElevation float64 // the current elevation
-	IsTrimmed bool // boolean for whether or not a polygon is trimmed.
-	GeometricAttributesBool bool // geometric attributes map
-	Position int // arbitary position
-	GeometricAttributesMap map[string][]interface{} // the original geomtirc attributes map
-	NewGeometricAttributesMap map[string][]interface{} // the new geometric attributes map
-	MovePointBool bool // a bool for the first move point
-	AttributePosition int // the attribute position we are currently on
-	ClosePathAttributePosition int // the position of the geometric attribute list when close path is used
+	Geometry                   []uint32  // holds the geomtry
+	LastPoint                  []int32   // holds the last point
+	Elevations                 []uint32  // holds elevations
+	Bounds                     m.Extrema // extrema structure
+	DeltaX                     float64   // delta between bounds
+	DeltaY                     float64   // delta between bounds
+	Count                      uint32    // arbitary counter?
+	Extent                     int32     // the extent
+	Bds                        m.Extrema
+	ExtentBool                 bool                     // bool for whether or not to trim by the extent
+	ZBool                      bool                     // zbool to indicate whether to render the third dimmension
+	SplineKnots                []int                    // the spline knots currently not supported
+	SplineDegree               int                      // the spline degree currently not supported
+	Scaling                    *Scaling                 // the scaling structure for the given feature
+	CurrentElevation           float64                  // the current elevation
+	IsTrimmed                  bool                     // boolean for whether or not a polygon is trimmed.
+	GeometricAttributesBool    bool                     // geometric attributes map
+	Position                   int                      // arbitary position
+	GeometricAttributesMap     map[string][]interface{} // the original geomtirc attributes map
+	NewGeometricAttributesMap  map[string][]interface{} // the new geometric attributes map
+	MovePointBool              bool                     // a bool for the first move point
+	AttributePosition          int                      // the attribute position we are currently on
+	ClosePathAttributePosition int                      // the position of the geometric attribute list when close path is used
 }
 
 var startbds = m.Extrema{N: -90.0, S: 90.0, E: -180.0, W: 180.0}
@@ -81,16 +82,17 @@ func NewCursor(tileid m.TileID) *Cursor {
 	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
 	cur := Cursor{
-		LastPoint: []int32{0, 0},
-		MovePointBool:true, 
-		Bounds: bound, 
-		DeltaX: deltax, 
-		DeltaY: deltay, 
-		Count: 0, 
-		Extent: int32(4096),
-		Bds: startbds,
-		NewGeometricAttributesMap:map[string][]interface{}{},
-		GeometricAttributesMap:map[string][]interface{}{},
+		LastPoint:                 []int32{0, 0},
+		MovePointBool:             true,
+		Bounds:                    bound,
+		DeltaX:                    deltax,
+		DeltaY:                    deltay,
+		Count:                     0,
+		Extent:                    int32(4096),
+		Bds:                       startbds,
+		NewGeometricAttributesMap: map[string][]interface{}{},
+		GeometricAttributesMap:    map[string][]interface{}{},
+		Scaling:NewScaling(),
 	}
 	cur = ConvertCursor(cur)
 	return &cur
@@ -102,16 +104,16 @@ func NewCursorExtent(tileid m.TileID, extent int32) *Cursor {
 	deltax := bound.E - bound.W
 	deltay := bound.N - bound.S
 	cur := Cursor{
-		LastPoint: []int32{0, 0},
-		MovePointBool:true,
-		Bounds: bound, 
-		DeltaX: deltax, 
-		DeltaY: deltay, 
-		Count: 0, 
-		Extent: extent, 
-		Bds: startbds,
-		NewGeometricAttributesMap:map[string][]interface{}{},
-		GeometricAttributesMap:map[string][]interface{}{},	
+		LastPoint:                 []int32{0, 0},
+		MovePointBool:             true,
+		Bounds:                    bound,
+		DeltaX:                    deltax,
+		DeltaY:                    deltay,
+		Count:                     0,
+		Extent:                    extent,
+		Bds:                       startbds,
+		NewGeometricAttributesMap: map[string][]interface{}{},
+		GeometricAttributesMap:    map[string][]interface{}{},
 	}
 	cur = ConvertCursor(cur)
 	return &cur
@@ -120,30 +122,28 @@ func NewCursorExtent(tileid m.TileID, extent int32) *Cursor {
 // sets the cursors geometric attributes
 func (cur *Cursor) SetCursorGeometricAttributes(attrs map[string][]interface{}) {
 	cur.GeometricAttributesMap = attrs
-	cur.GeometricAttributesBool = len(attrs) > 0 
+	cur.GeometricAttributesBool = len(attrs) > 0
 }
 
 // dumps the interface map to the proper format
 func DumpInterfaceMap(data interface{}) map[string]interface{} {
-	mine,boolval := data.(map[string]interface{})
+	mine, boolval := data.(map[string]interface{})
 	if boolval {
 		return mine
 	} else {
 		return map[string]interface{}{}
 	}
-} 
-
-
+}
 
 func ConvertPoint(point []float64) []float64 {
 	x := mercatorPole / 180.0 * point[0]
 
 	y := math.Log(math.Tan((90.0+point[1])*math.Pi/360.0)) / math.Pi * mercatorPole
 	y = math.Max(-mercatorPole, math.Min(y, mercatorPole))
-	if len(point)==3 {
-		return []float64{x, y,point[2]}
+	if len(point) == 3 {
+		return []float64{x, y, point[2]}
 	} else {
-		return []float64{x,y}
+		return []float64{x, y}
 	}
 }
 
@@ -169,15 +169,15 @@ func paramEnc(value int32) int32 {
 
 // gets the elevation
 func (cur *Cursor) Elevation(value float64) uint32 {
-	delta_encoded_value :=  float64((value - cur.Scaling.Base) / cur.Scaling.Multiplier) - float64(cur.Scaling.Offset)
+	delta_encoded_value := float64((value-cur.Scaling.Base)/cur.Scaling.Multiplier) - float64(cur.Scaling.Offset)
 	return uint32(paramEnc(int32(delta_encoded_value)))
 }
 
 // adding an attribute to attributes list
 func (cur *Cursor) AddAttribute() {
-	for k,v := range cur.GeometricAttributesMap {
-		cur.NewGeometricAttributesMap[k] = append(cur.NewGeometricAttributesMap[k],v[cur.AttributePosition])
-	}	
+	for k, v := range cur.GeometricAttributesMap {
+		cur.NewGeometricAttributesMap[k] = append(cur.NewGeometricAttributesMap[k], v[cur.AttributePosition])
+	}
 }
 
 // simple move to command
@@ -186,7 +186,7 @@ func (cur *Cursor) MovePoint(point []int32) {
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[0]-cur.LastPoint[0])))
 	cur.Geometry = append(cur.Geometry, uint32(paramEnc(point[1]-cur.LastPoint[1])))
 	if cur.ZBool {
-		cur.Elevations = append(cur.Elevations,cur.Elevation(cur.CurrentElevation))
+		cur.Elevations = append(cur.Elevations, cur.Elevation(cur.CurrentElevation))
 	}
 	if cur.GeometricAttributesBool {
 		cur.AddAttribute()
@@ -205,13 +205,13 @@ func (cur *Cursor) LinePoint(point []int32) {
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltax)))
 		cur.Geometry = append(cur.Geometry, uint32(paramEnc(deltay)))
 		if cur.ZBool {
-			cur.Elevations = append(cur.Elevations,cur.Elevation(cur.CurrentElevation))
+			cur.Elevations = append(cur.Elevations, cur.Elevation(cur.CurrentElevation))
 		}
 		if cur.GeometricAttributesBool {
 			cur.AddAttribute()
 		}
 		cur.Count = cur.Count + 1
-		
+
 	}
 	cur.AttributePosition++
 	cur.Position++
@@ -254,7 +254,7 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 // reverses the coord list
 func reverse(coord [][]int32) [][]int32 {
 	current := len(coord) - 1
-	newlist := make([][]int32,len(coord))
+	newlist := make([][]int32, len(coord))
 	i := 0
 	for current != -1 {
 		newlist[i] = coord[current]
@@ -293,17 +293,15 @@ func assert_winding_order(coord [][]int32, exp_orient string) [][]int32 {
 		return coord
 	}
 	return coord
-
 }
 
-var Power7 = math.Pow(10,-7)
+var Power7 = math.Pow(10, -7)
 
 // checking to see if the start / end value is trimmed
-func IsTrimmed(p1,p2 []float64) bool {
-	dx,dy := math.Abs(p1[0] - p2[0]),math.Abs(p1[1] - p2[1])
+func IsTrimmed(p1, p2 []float64) bool {
+	dx, dy := math.Abs(p1[0]-p2[0]), math.Abs(p1[1]-p2[1])
 	return !(dx < Power7 && dy < Power7)
 }
-
 
 // asserts a winding order
 func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
@@ -350,18 +348,18 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 
 	// creating cursor to make the line
 	newcur := Cursor{
-		LastPoint: cur.LastPoint,
-		Bounds: cur.Bounds,
-		DeltaX: cur.DeltaX,
-		DeltaY: cur.DeltaY,
-		CurrentElevation:cur.CurrentElevation,
-		AttributePosition:cur.AttributePosition,
-		GeometricAttributesBool:cur.GeometricAttributesBool,
-		GeometricAttributesMap:cur.GeometricAttributesMap,
-		NewGeometricAttributesMap:cur.NewGeometricAttributesMap,
+		LastPoint:                 cur.LastPoint,
+		Bounds:                    cur.Bounds,
+		DeltaX:                    cur.DeltaX,
+		DeltaY:                    cur.DeltaY,
+		CurrentElevation:          cur.CurrentElevation,
+		AttributePosition:         cur.AttributePosition,
+		GeometricAttributesBool:   cur.GeometricAttributesBool,
+		GeometricAttributesMap:    cur.GeometricAttributesMap,
+		NewGeometricAttributesMap: cur.NewGeometricAttributesMap,
 	}
 	newcur.MakeLine(newlist)
-	newgeom,neweles := newcur.Geometry,newcur.Elevations
+	newgeom, neweles := newcur.Geometry, newcur.Elevations
 	newgeom = append(newgeom, closePath(1))
 
 	// adding the close path interval
@@ -375,7 +373,7 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	// cleaning up
 	cur.Position++
 	cur.Geometry = append(cur.Geometry, newgeom...)
-	cur.Elevations = append(cur.Elevations,neweles...)
+	cur.Elevations = append(cur.Elevations, neweles...)
 	cur.LastPoint = newlist[len(newlist)-1]
 }
 
@@ -471,7 +469,7 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 		}
 	}
 
-	return []int32{xval, yval,int32(cur.CurrentElevation)}
+	return []int32{xval, yval, int32(cur.CurrentElevation)}
 }
 
 func (cur *Cursor) MakePointFloat(point []float64) {

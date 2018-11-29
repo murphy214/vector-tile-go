@@ -47,3 +47,25 @@ Each key-value pair in the geometric_attributes MUST have a value whose type is 
 * Proper management of elevation scaling, and other potential feature level configuration variables 
 * Other stuff TM 
 
+### Writing tests for all the different geometries
+
+#### Starting with the floating point creation
+
+* point
+* multi-point
+* line 
+* multi-line
+* polygon 
+* multi-polygon
+
+#### The various configuration types
+
+* 2d + polygon o/c
+* 3d + polygon o/c
+* 2d - atrribute + polygon o/c
+* 3d - attribute + polygon o/c
+
+
+
+
+

@@ -1,101 +1,650 @@
 package vt
 
 import (
-	"github.com/paulmach/go.geojson"
-	"testing"
+	"fmt"
 	m "github.com/murphy214/mercantile"
+	"github.com/paulmach/go.geojson"
+	"math/rand"
+	"testing"
+
 )
 
 
-var polygon_s = `{"geometry": {"type": "Polygon", "coordinates": [[[-7.734374999999999, 25.799891182088334], [10.8984375, -34.016241889667015], [45.703125, 17.644022027872726], [-5.9765625, 26.43122806450644], [-7.734374999999999, 25.799891182088334]]]}, "type": "Feature", "properties": {}}`
-var multipolygon_s = `{"type":"Feature","properties":{},"geometry":{"type":"MultiPolygon","coordinates":[[[[-71.71875,51.17934297928927],[-36.2109375,-49.15296965617039],[30.585937499999996,0.3515602939922709],[29.179687499999996,59.17592824927136],[-38.3203125,70.72897946208789],[-71.71875,51.17934297928927]]],[[[33.3984375,74.68325030051861],[75.234375,16.29905101458183],[76.2890625,64.77412531292873],[32.6953125,75.23066741281573],[33.3984375,74.68325030051861]]]]}}`
-var linestring_s = `{"geometry": {"type": "LineString", "coordinates": [[10.8984375, 56.17002298293205], [16.5234375, -2.108898659243126], [59.4140625, 42.032974332441405], [61.17187499999999, 42.293564192170095]]}, "type": "Feature", "properties": {}}`	
-var multilinestring_s = `{"geometry": {"type": "MultiLineString", "coordinates": [[[-48.1640625, 47.754097979680026], [-9.140625, 4.214943141390651], [15.468749999999998, -9.102096738726443]], [[10.8984375, 56.17002298293205], [16.5234375, -2.108898659243126], [59.4140625, 42.032974332441405], [61.17187499999999, 42.293564192170095]]]}, "type": "Feature", "properties": {}}`
-var point_s = `{"geometry": {"type": "Point", "coordinates": [-48.1640625, 47.754097979680026]}, "type": "Feature", "properties": {}}`
-var multipoint_s = `{"geometry": {"type": "MultiPoint", "coordinates": [[-48.1640625, 47.754097979680026], [-9.140625, 4.214943141390651]]}, "type": "Feature", "properties": {}}`
+// the test case structure
+type TestCase struct {
+	GeometryType string
+	ZBool bool
+	ClosedPolygon bool
+	GeometricAttributesBool bool
+	Point []float64
+	MultiPoint [][]float64
+	LineString [][]float64
+	MultiLineString [][][]float64
+	Polygon [][][]float64
+	MultiPolygon [][][][]float64
+	Cursor *Cursor
+	CheckCursor *Cursor
+}
+
+func (testcase *TestCase) CreateTitle() string {
+	var mydim string
+	if testcase.ZBool {
+		mydim = "3D"
+	} else {
+		mydim = "2D"
+	}
+
+	geoattr := ""
+	if testcase.GeometricAttributesBool {
+		geoattr = "With Geometric Attributes"
+	} else {
+		geoattr = "Without Geometric Attributes"
+	}
+
+	if testcase.GeometryType == "Polygon" || testcase.GeometryType == "MultiPolygon" {
+		var closed string
+		if testcase.ClosedPolygon {
+			closed = "Closed Ending"
+		} else {
+			closed = "Open Ending"
+		}
+		return fmt.Sprintf("Test %s, %s, %s, %s",testcase.GeometryType,mydim,closed,geoattr)
+	} else {
+		return fmt.Sprintf("Test %s, %s, N/A, %s",testcase.GeometryType,mydim,geoattr)
+	}
+	return ""
+}
+
+// random elevation
+func RandomInt() int {
+	return rand.Intn(10000)
+}
+
+// creates a given cursor
+func CreateCursor() *Cursor {
+	cur := NewCursor(m.TileID{0,0,0})
+	cur.Extent = int32(4096 * 4096)
+	return cur
+}
+
+// adds z to a point
+func AddZToPoint(pt []float64) []float64 {
+	return append(pt,float64(RandomInt()))
+}
+
+// finishes the creation of the geometry and rolls over the 
+// check cursor
+func (testcase *TestCase) Convert() {
+	switch testcase.GeometryType {
+	case "Point":
+		testcase.Cursor.MakePointFloat(testcase.Point)
+	case "MultiPoint":
+		testcase.Cursor.MakeMultiPointFloat(testcase.MultiPoint)
+	case "LineString":
+		testcase.Cursor.MakeLineFloat(testcase.LineString)
+	case "MultiLineString":
+		testcase.Cursor.MakeMultiLineFloat(testcase.MultiLineString)
+	case "Polygon":	
+		testcase.Cursor.MakePolygonFloat(testcase.Polygon)
+	case "MultiPolygon":
+		testcase.Cursor.MakeMultiPolygonFloat(testcase.MultiPolygon)
+	}
+
+	testcase.CheckCursor = &Cursor{
+		Geometry:testcase.Cursor.Geometry,
+		LastPoint:testcase.Cursor.LastPoint,
+		Elevations:testcase.Cursor.Elevations,
+		Bounds:testcase.Cursor.Bounds,
+		DeltaX:testcase.Cursor.DeltaX,
+		DeltaY:testcase.Cursor.DeltaY,
+		Count:testcase.Cursor.Count,
+		Extent:testcase.Cursor.Extent,
+		Bds:testcase.Cursor.Bds,
+		ExtentBool:testcase.Cursor.ExtentBool,
+		ZBool:testcase.Cursor.ZBool,
+		SplineKnots:testcase.Cursor.SplineKnots,
+		SplineDegree:testcase.Cursor.SplineDegree,
+		Scaling:testcase.Cursor.Scaling,
+		CurrentElevation:testcase.Cursor.CurrentElevation,
+		IsTrimmed:testcase.Cursor.IsTrimmed,
+		GeometricAttributesBool:testcase.Cursor.GeometricAttributesBool,
+		Position:testcase.Cursor.Position,
+		GeometricAttributesMap:testcase.Cursor.GeometricAttributesMap,
+		NewGeometricAttributesMap:testcase.Cursor.NewGeometricAttributesMap,
+		MovePointBool:testcase.Cursor.MovePointBool,
+		AttributePosition:testcase.Cursor.AttributePosition,
+		ClosePathAttributePosition:testcase.Cursor.ClosePathAttributePosition,	
+	}
+	testcase.Cursor = CreateCursor()
+	//testcase.Cursor.Elevations = []uint32{}
+	//testcase.Cursor.Geometry = []uint32{}
+	//testcase.Cursor.NewGeometricAttributesMap = map[string][]interface{}{}
+}
+
+
+// creates the ptcases
+func ptcases(point []float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"Point",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		Point:point,
+		Cursor:CreateCursor(),
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"Point",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		Point:AddZToPoint(point),
+		Cursor:CreateCursor(),
+	}
+	case2.Convert()
+
+	attrs := map[string][]interface{}{"field1":[]interface{}{55555}}
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"Point",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		Point:point,
+		Cursor:CreateCursor(),
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"Point",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		Point:AddZToPoint(point),
+		Cursor:CreateCursor(),
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	return []*TestCase{case1,case2,case3,case4}
+}
+
+func Addztoline(line [][]float64) [][]float64 {
+	for pos,i := range line {
+		line[pos] = AddZToPoint(i)
+	}
+	return line
+}
+
+
+func Addztolines(lines [][][]float64) [][][]float64 {
+	for pos,i := range lines {
+		lines[pos] = Addztoline(i)
+	}
+	return lines
+}
+
+func Addztopolygons(lines [][][][]float64) [][][][]float64 {
+	for pos,i := range lines {
+		lines[pos] = Addztolines(i)
+	}
+	return lines
+}
+
+// creates the ptcases
+func multiptcases(points [][]float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"MultiPoint",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		MultiPoint:points,
+		Cursor:CreateCursor(),
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"MultiPoint",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		MultiPoint:Addztoline(points),
+		Cursor:CreateCursor(),
+	}
+	case2.Convert()
+
+	randattrs := make([]interface{},len(points))
+	for i := range points {
+		randattrs[i] = RandomInt()
+	}
+
+	attrs := map[string][]interface{}{"field1":randattrs}
+	
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"MultiPoint",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		MultiPoint:points,
+		Cursor:CreateCursor(),
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"MultiPoint",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		MultiPoint:Addztoline(points),
+		Cursor:CreateCursor(),
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	return []*TestCase{case1,case2,case3,case4}
+}
+
+
+// creates the ptcases
+func linecases(points [][]float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"LineString",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		LineString:points,
+		Cursor:CreateCursor(),
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"LineString",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		LineString:Addztoline(points),
+		Cursor:CreateCursor(),
+	}
+	case2.Convert()
+
+	randattrs := make([]interface{},len(points))
+	for i := range points {
+		randattrs[i] = RandomInt()
+	}
+
+	attrs := map[string][]interface{}{"field1":randattrs}
+	
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"LineString",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		LineString:points,
+		Cursor:CreateCursor(),
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"LineString",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		LineString:Addztoline(points),
+		Cursor:CreateCursor(),
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	return []*TestCase{case1,case2,case3,case4}
+}
+
+
+// creates the ptcases
+func multilinecases(points [][][]float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"MultiLineString",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		MultiLineString:points,
+		Cursor:CreateCursor(),
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"MultiLineString",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		MultiLineString:Addztolines(points),
+		Cursor:CreateCursor(),
+	}
+	case2.Convert()
+
+
+	randattrs := []interface{}{}
+	for _,line := range points {
+		for range line {
+			randattrs = append(randattrs,RandomInt())
+		}
+	}
+
+	attrs := map[string][]interface{}{"field1":randattrs}
+	
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"MultiLineString",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		MultiLineString:points,
+		Cursor:CreateCursor(),
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"MultiLineString",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		MultiLineString:Addztolines(points),
+		Cursor:CreateCursor(),
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	return []*TestCase{case1,case2,case3,case4}
+}
+
+
+// creates the ptcases
+func polygoncases(points [][][]float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		Polygon:points,
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		Polygon:Addztolines(points),
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case2.Convert()
+
+	randattrs := []interface{}{}
+	for _,line := range points {
+		for range line {
+			randattrs = append(randattrs,RandomInt())
+		}
+	}
+
+	attrs := map[string][]interface{}{"field1":randattrs}
+	
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		Polygon:points,
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		Polygon:Addztolines(points),
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	for pos,i := range points {
+		points[pos] = i[:len(i)-1]
+	}
+
+	// 2d no attributes
+	case5 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		Polygon:points,
+		Cursor:CreateCursor(),
+	}
+	case5.Convert()
+	
+	// 3d no attributes
+	case6 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		Polygon:Addztolines(points),
+		Cursor:CreateCursor(),
+	}
+	case6.Convert()
+
+	// 2d attributes
+	case7 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		Polygon:points,
+		Cursor:CreateCursor(),
+	}
+	case7.Cursor.GeometricAttributesMap = attrs
+	case7.Convert()
+	
+	// 3d attributes
+	case8 := &TestCase{
+		GeometryType:"Polygon",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		Polygon:Addztolines(points),
+		Cursor:CreateCursor(),
+	}
+	case8.Cursor.GeometricAttributesMap = attrs
+	case8.Convert()
+
+	return []*TestCase{case1,case2,case3,case4,case5,case6,case7,case8}
+}
+
+
+// creates the ptcases
+func multipolygoncases(points [][][][]float64) []*TestCase {
+	// 2d no attributes
+	case1 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		MultiPolygon:points,
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case1.Convert()
+	
+	// 3d no attributes
+	case2 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		MultiPolygon:Addztopolygons(points),
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case2.Convert()
+
+	randattrs := []interface{}{}
+	for _,line := range points {
+		for range line {
+			randattrs = append(randattrs,RandomInt())
+		}
+	}
+
+	attrs := map[string][]interface{}{"field1":randattrs}
+	
+	// 2d attributes
+	case3 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		MultiPolygon:points,
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case3.Cursor.GeometricAttributesMap = attrs
+	case3.Convert()
+	
+	// 3d attributes
+	case4 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		MultiPolygon:Addztopolygons(points),
+		Cursor:CreateCursor(),
+		ClosedPolygon:true,
+	}
+	case4.Cursor.GeometricAttributesMap = attrs
+	case4.Convert()
+	for pos,i := range points {
+		for pos2,ii := range i {
+			i[pos2] = ii[:len(ii)-1]
+		}
+		points[pos] = i
+		//points[pos] = i[:len(i)-1]
+	}
+
+	// 2d no attributes
+	case5 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:false,
+		GeometricAttributesBool:false,
+		MultiPolygon:points,
+		Cursor:CreateCursor(),
+	}
+	case5.Convert()
+	
+	// 3d no attributes
+	case6 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:true,
+		GeometricAttributesBool:false,
+		MultiPolygon:Addztopolygons(points),
+		Cursor:CreateCursor(),
+	}
+	case6.Convert()
+
+	// 2d attributes
+	case7 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:false,
+		GeometricAttributesBool:true,
+		MultiPolygon:points,
+		Cursor:CreateCursor(),
+	}
+	case7.Cursor.GeometricAttributesMap = attrs
+	case7.Convert()
+	
+	// 3d attributes
+	case8 := &TestCase{
+		GeometryType:"MultiPolygon",
+		ZBool:true,
+		GeometricAttributesBool:true,
+		MultiPolygon:Addztopolygons(points),
+		Cursor:CreateCursor(),
+	}
+	case8.Cursor.GeometricAttributesMap = attrs
+	case8.Convert()
+
+	return []*TestCase{case1,case2,case3,case4,case5,case6,case7,case8}
+}
 
 
 
-var polygon,err = geojson.UnmarshalFeature([]byte(polygon_s))
-var multipolygon,_ = geojson.UnmarshalFeature([]byte(multipolygon_s))
-var linestring,_ = geojson.UnmarshalFeature([]byte(linestring_s))
-var multilinestring,_ = geojson.UnmarshalFeature([]byte(multilinestring_s))
-var point,_ = geojson.UnmarshalFeature([]byte(point_s))
-var multipoint,_ = geojson.UnmarshalFeature([]byte(multipoint_s))
+// creates all the relevant test cases
+func create() []*TestCase  {
+	string1 := `{"id":1,"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-75.773786,39.7222],[-75.753228,39.757988999999995],[-75.71705899999999,39.792325],[-75.662846,39.821425],[-75.5943169052201,39.8345949730913],[-75.570433,39.839185],[-75.481207,39.829191],[-75.41506199999999,39.801919],[-75.459439,39.765813],[-75.47764,39.715013],[-75.509742,39.686113],[-75.535144,39.647211999999996],[-75.559446,39.629812],[-75.543965,39.596000000000004],[-75.512732,39.578],[-75.527676,39.535278],[-75.528088,39.498114],[-75.593068,39.479186],[-75.57182999999999,39.438897],[-75.521682,39.387871],[-75.50564316735289,39.370394560079596],[-75.58476499999999,39.308644],[-75.619631,39.310058],[-75.65115899999999,39.291593999999996],[-75.714901,39.299366],[-75.7604414164505,39.296789621100096],[-75.76689499999999,39.377499],[-75.76690460670919,39.3776515935512],[-75.788596,39.722198999999996],[-75.773786,39.7222]]]},"properties":{"AREA":"10003","COLORKEY":"#9DDE06","area":"10003","index":948}}`
+	string2 := `{"id":0,"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-75.7604414164505,39.296789621100096],[-75.714901,39.299366],[-75.65115899999999,39.291593999999996],[-75.619631,39.310058],[-75.58476499999999,39.308644],[-75.50564316735289,39.370394560079596],[-75.469324,39.330819999999996],[-75.40837599999999,39.264697999999996],[-75.39479,39.188354],[-75.407473,39.133706],[-75.396277,39.057884],[-75.34089,39.01996],[-75.3066521095097,38.9476601633284],[-75.38016999999999,38.961892999999996],[-75.410463,38.916418],[-75.48412499999999,38.904447999999995],[-75.555013,38.835649],[-75.72310269333269,38.8298265565277],[-75.7481548142541,39.143131730959695],[-75.7564352155685,39.246687537125304],[-75.7604414164505,39.296789621100096]]]},"properties":{"AREA":"10001","COLORKEY":"#DDCD07","area":"10001","index":3143}}`
+	feat1,_ := geojson.UnmarshalFeature([]byte(string1))
+	feat2,_ := geojson.UnmarshalFeature([]byte(string2))
+	pt := feat1.Geometry.Polygon[0][0]
+	case1 := ptcases(pt)
+	case2 := multiptcases(feat1.Geometry.Polygon[0])
+	case3 := linecases(feat1.Geometry.Polygon[0])
+	case4 := multilinecases(feat1.Geometry.Polygon)
+	case5 := polygoncases(feat1.Geometry.Polygon)
+	case6 := multipolygoncases([][][][]float64{feat1.Geometry.Polygon,feat2.Geometry.Polygon})
+	total := []*TestCase{}
+	total = append(total,case1...)
+	total = append(total,case2...)
+	total = append(total,case3...)
+	total = append(total,case4...)
+	total = append(total,case5...)
+	total = append(total,case6...)
+	return total
+}
 
-var polygon_geometry = []uint32{0x9, 0xf50, 0xda0, 0x22, 0x1a8, 0x598, 0x318, 0x4cf, 0x499, 0xd7, 0x25, 0x10, 0xf}
-var multipolygon_geometry = []uint32{0x9, 0x99e, 0xab0, 0x2a, 0x32a, 0xa58, 0x5f0, 0x50f, 0x1f, 0x687, 0x5ff, 0x277, 0x2f9, 0x3b8, 0xf, 0x9, 0x95a, 0x4e7, 0x22, 0x3b8, 0x8c0, 0x18, 0x627, 0x3df, 0x2c9, 0x10, 0x32, 0xf}
-var linestring_geometry = []uint32{0x9, 0x10f8, 0x9f0, 0x1a, 0x80, 0x640, 0x3d0, 0x44f, 0x28, 0x7}
-var multilinestring_geometry = []uint32{0x9, 0xbb8, 0xb28, 0x12, 0x378, 0x478, 0x230, 0x130, 0x9, 0x67, 0x6df, 0x2a, 0x80, 0x640, 0x3d0, 0x44f, 0x28, 0x7}
-var point_geometry = []uint32{0x9, 0xbb8, 0xb28}
-var multipoint_geometry = []uint32{0x11, 0xbb8, 0xb28, 0x378, 0x478}
+func FindError(testcase *TestCase) string {
+	switch testcase.GeometryType {
+	case "Point":
+		testcase.Cursor.MakePointFloat(testcase.Point)
+	case "MultiPoint":
+		testcase.Cursor.MakeMultiPointFloat(testcase.MultiPoint)
+	case "LineString":
+		testcase.Cursor.MakeLineFloat(testcase.LineString)
+	case "MultiLineString":
+		testcase.Cursor.MakeMultiLineFloat(testcase.MultiLineString)
+	case "Polygon":	
+		testcase.Cursor.MakePolygonFloat(testcase.Polygon)
+	case "MultiPolygon":
+		testcase.Cursor.MakeMultiPolygonFloat(testcase.MultiPolygon)
+	}
 
-func TestPolygonFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakePolygonFloat(polygon.Geometry.Polygon)
+	val1,val2 := testcase.Cursor.Elevations,testcase.CheckCursor.Elevations
+	if len(val1) != len(val2) {
+		return fmt.Sprintf("Elevations not the same size,%v %v %v %s",testcase,val1,val2,testcase.CreateTitle())
+	}
+	
+	for i := range val1 {
+		if val1[i] != val2[i] {
+			return fmt.Sprintf("Elevation values not the same check: %d mine: %d %s",val2[i],val1[i],testcase.CreateTitle())
+		}
+	}
+	val1,val2 = testcase.Cursor.Geometry,testcase.CheckCursor.Geometry
+	if len(val1) == len(val2) {
+		return fmt.Sprintf("Geometry not the same size,%s",testcase.CreateTitle())
+	}
+	
+	for i := range val1 {
+		if val1[i] != val2[i] {
+			return fmt.Sprintf("Geometry values not the same check: %d mine: %d %s",val2[i],val1[i],testcase.CreateTitle())
+		}
+	}
+	return ""
+}
 
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != polygon_geometry[i] {
-			t.Errorf("Polygon Geometry Error")
+func TestCases(t *testing.T) {
+	cases := create()
+	for _,ca := range cases {
+		val := FindError(ca)
+		if len(val) > 0 {
+			t.Errorf(val)
 		}
 	}
 }
 
-func TestMultiPolygonFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakeMultiPolygonFloat(multipolygon.Geometry.MultiPolygon)
 
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != multipolygon_geometry[i] {
-			t.Errorf("multipolygon Geometry Error")
-		}
-	}
-}
-
-func TestLineStringFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakeLineFloat(linestring.Geometry.LineString)
-
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != linestring_geometry[i] {
-			t.Errorf("linestring Geometry Error")
-		}
-	}
-}
-
-func TestMultiLineStringFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakeMultiLineFloat(multilinestring.Geometry.MultiLineString)
-
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != multilinestring_geometry[i] {
-			t.Errorf("multilinestring Geometry Error")
-		}
-	}
-}
-
-
-func TestPointFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakePointFloat(point.Geometry.Point)
-
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != point_geometry[i] {
-			t.Errorf("point Geometry Error")
-		}
-	}
-}
-
-
-func TestMultiPointFloat(t *testing.T) {
-	cur := NewCursorExtent(m.TileID{0,0,0},4096)
-	cur.MakeMultiPointFloat(multipoint.Geometry.MultiPoint)
-
-	for i := range cur.Geometry {
-		if cur.Geometry[i] != multipoint_geometry[i] {
-			t.Errorf("point Geometry Error")
-		}
-	}
-}
 
 
