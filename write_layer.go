@@ -2,7 +2,6 @@ package vt
 
 import (
 	"errors"
-	//"fmt"
 	g "github.com/murphy214/geobuf"
 	m "github.com/murphy214/mercantile"
 	"github.com/murphy214/pbf"
@@ -161,7 +160,7 @@ func WriteLayer(features []*geojson.Feature, config Config) (total_bytes []byte,
 	total_bytes = append(total_bytes, mylayer.Values_Bytes...)
 
 	// appending extra config values
-	if mylayer.Extent != 4096 {
+	if true {
 		total_bytes = append(total_bytes, 40)
 		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(mylayer.Extent))...)
 	}
@@ -197,7 +196,7 @@ func (mylayer *LayerWrite) Flush() []byte {
 	total_bytes = append(total_bytes, mylayer.Values_Bytes...)
 
 	// appending extra config values
-	if mylayer.Extent != 4096 {
+	if true {
 		total_bytes = append(total_bytes, 40)
 		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(mylayer.Extent))...)
 	}
@@ -252,7 +251,7 @@ func WriteLayerGeobuf(buf *g.Reader, config Config) (total_bytes []byte, err err
 	total_bytes = append(total_bytes, mylayer.Values_Bytes...)
 
 	// appending extra config values
-	if mylayer.Extent != 4096 {
+	if true {
 		total_bytes = append(total_bytes, 40)
 		total_bytes = append(total_bytes, pbf.EncodeVarint(uint64(mylayer.Extent))...)
 	}

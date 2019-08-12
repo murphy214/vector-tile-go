@@ -77,6 +77,7 @@ func (tile *Tile) NewLayer(endpos int) {
 
 		}
 	}
+
 	if layer.Extent == 0 {
 		layer.Extent = 4096
 	}
