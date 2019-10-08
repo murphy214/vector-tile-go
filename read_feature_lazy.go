@@ -15,7 +15,7 @@ type Feature struct {
 	Properties   map[string]interface{}
 	geometry_pos int
 	extent       int
-	geom_int     int
+	Geom_int     int
 	Buf          *pbf.PBF
 }
 
@@ -107,7 +107,7 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 		// logic for handling features
 		if key == 3 && val == 0 {
 			geom_type := int(layer.Buf.Varint()[0])
-			feature.geom_int = geom_type
+			feature.Geom_int = geom_type
 			switch geom_type {
 			case 1:
 				feature.Type = "Point"
@@ -130,6 +130,25 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 	return feature, err
 }
 
+
+func (feature *Feature) LoadGeometryRaw() (geom []uint32, err error) {
+	defer func() {
+		// recover from panic if one occured. Set err to nil otherwise.
+		if recover() != nil {
+			err = errors.New("Error in feature.LoadGeometry()")
+		}
+	}()
+
+	// getting geometry
+	// this huge code block is to reduce allocations and shit
+
+	feature.Buf.Pos = feature.geometry_pos
+	geom = feature.Buf.ReadPackedUInt32()
+	return geom,err
+}
+
+
+
 func (feature *Feature) LoadGeometry() (geomm *geojson.Geometry, err error) {
 	defer func() {
 		// recover from panic if one occured. Set err to nil otherwise.
@@ -148,7 +167,7 @@ func (feature *Feature) LoadGeometry() (geomm *geojson.Geometry, err error) {
 	var lines [][][]float64
 	var polygons [][][][]float64
 	var firstpt []float64
-	geom_type := feature.geom_int
+	geom_type := feature.Geom_int
 
 	for pos < len(geom) {
 		if geom[pos] == 9 {

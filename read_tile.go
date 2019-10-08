@@ -43,6 +43,18 @@ func NewTile(bytevals []byte) (tile *Tile, err error) {
 	return tile, err
 }
 
+// renders what is currently in the amp for me 
+func (tile *Tile) Render() []byte {
+	totalbs := []byte{}
+	for _,v := range tile.LayerMap {
+		bs := v.Buf.Pbf[v.StartPos:v.EndPos]
+		prefix := pbf.EncodeVarint(uint64(len(bs)))
+		layerbs := append(append([]byte{26},prefix...),bs...)
+		totalbs = append(totalbs,layerbs...)
+	}
+	return totalbs
+}
+
 // create / reads a new vector tile from a byte array
 func ReadTile(bytevals []byte, tileid m.TileID) (totalfeautures []*geojson.Feature, err error) {
 
