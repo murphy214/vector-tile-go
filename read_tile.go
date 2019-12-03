@@ -55,6 +55,24 @@ func (tile *Tile) Render() []byte {
 	return totalbs
 }
 
+// deletes a given layer
+func (tile *Tile) DeleteLayer(layername string) []byte {
+	delete(tile.LayerMap,layername)
+	bs := tile.Render()
+	return bs
+}
+
+// deletes a given layer
+func (tile *Tile) DeleteLayers(layernames []string) []byte {
+	for _,layername := range layernames {
+		delete(tile.LayerMap,layername)
+	}
+	bs := tile.Render()
+	return bs
+}
+
+
+
 // create / reads a new vector tile from a byte array
 func ReadTile(bytevals []byte, tileid m.TileID) (totalfeautures []*geojson.Feature, err error) {
 
