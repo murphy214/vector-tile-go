@@ -4,7 +4,6 @@ import (
 	"github.com/paulmach/go.geojson"
 	"reflect"
 	//"github.com/murphy214/geobuf/geobuf_raw"
-
 	p "github.com/murphy214/pbf"
 )
 
@@ -82,8 +81,9 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	if !abort_bool {
 		array1 = []byte{18}
 		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
-		//fmt.Println(AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9))
 		layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+	
+	
 	} else {
 	}
 }
