@@ -2,6 +2,8 @@ package vt
 
 import (
 	"github.com/murphy214/pbf"
+	m "github.com/murphy214/mercantile"
+	"fmt"
 )
 
 // the layer structure for layer
@@ -19,7 +21,7 @@ type Layer struct {
 	Buf              *pbf.PBF
 	keys_ind		[2]int
 	values_ind 		[2]int
-	keys_bool true
+	keys_bool,vals_bool bool
 }	
 
 // creates a new layer
@@ -47,8 +49,8 @@ func (tile *Tile) NewLayer(endpos int) {
 		}
 		if key == 3 && val == 2 && !keys_bool {
 			keys_bool = true 
-			mypos := tile.layer.Buf.Pos 
-			layer.keys_ind[0] = mypos
+			mypos := tile.Buf.Pos 
+			layer.keys_ind[0] = mypos-1
 		}
 
 
@@ -57,15 +59,15 @@ func (tile *Tile) NewLayer(endpos int) {
 			layer.Keys = append(layer.Keys, tile.Buf.ReadString())
 			key, val = tile.Buf.ReadKey()
 			if (key == 3 && val == 2) {
-				layer.keys_ind[1] = tile.Buf.Pos 
+				layer.keys_ind[1] = tile.Buf.Pos -1
 
 			}
 		}
 
 		if key == 4 && val == 2 && !vals_bool {
 			vals_bool = true 
-			mypos := tile.layer.Buf.Pos 
-			layer.keys_ind[0] = mypos
+			mypos := tile.Buf.Pos 
+			layer.values_ind[0] = mypos-1
 		}
 
 		// collecting all values
@@ -91,7 +93,7 @@ func (tile *Tile) NewLayer(endpos int) {
 			}
 			key, val = tile.Buf.ReadKey()
 			if !(key == 4 && val == 2 ) {
-				layer.values_ind[1] = tile.Buf.Pos 
+				layer.values_ind[1] = tile.Buf.Pos -1
 
 			}
 		}
@@ -136,3 +138,71 @@ func (layer *Layer) WriteLayer(tileid m.TileID) *WriteLayer {
 |
 
 */
+func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
+	// creating cursor 
+	cur := NewCursorExtent(tileid,4326)
+	
+	// getting the last feature 
+	layer.feature_position = layer.Number_Features-1
+
+	feat,err := layer.Feature()
+	if err != nil {
+		return nil,err
+	}
+	
+	geom,err := feat.LoadGeometry()
+	if err != nil {
+		return nil,err
+	}
+
+	last_pt := get_last_point(geom)
+	if len(last_pt) == 2 {
+		cur.LastPoint = []int32{int32(last_pt[0]),int32(last_pt[1])}
+	}
+	//fmt.Println(cur,get_last_point(geom),"we here")
+
+	// getting the bytes assocated with features
+	var feat_bytes []byte
+	if len(layer.features) > 0 {
+		start_pos := layer.features[0] 
+		
+		layer.Buf.Pos = layer.features[len(layer.features)-1]
+		//layer.Buf.Pos = layer.features[len(layer.features)-1]
+		fmt.Println(layer.Buf.Pos,layer.Buf.Pos,layer.Buf.Pbf[layer.Buf.Pos-3:layer.Buf.Pos+25],layer.Buf.Pbf[layer.Buf.Pos])
+
+		end_pos := layer.Buf.Pos + int(layer.Buf.ReadVarint())
+		feat_bytes = layer.Buf.Pbf[start_pos-1:end_pos]
+		fmt.Println(feat_bytes)
+		fmt.Println(start_pos,layer.Buf.Pos,layer.Buf.Pbf[start_pos-3:start_pos+3],layer.Buf.Pbf[start_pos])
+	} else {
+		feat_bytes = []byte{}
+	}
+
+	// creating the keys map
+	keymap := map[string]uint32{}
+	for pos,key := range layer.Keys {
+		keymap[key] = uint32(pos)
+	}
+
+	// creeating values map
+	valuemap := map[interface{}]uint32{}
+	for pos,value := range layer.Values {
+		valuemap[value] = uint32(pos)
+	}
+	
+	bds := m.Bounds(tileid)
+	return &LayerWrite{
+		Name:layer.Name,
+		Extent:layer.Extent,
+		Version:layer.Version,
+		TileID:tileid,
+		Keys_Bytes: layer.Buf.Pbf[layer.keys_ind[0]:layer.keys_ind[1]],
+		Values_Bytes: layer.Buf.Pbf[layer.values_ind[0]:layer.values_ind[1]],
+		Features: feat_bytes,
+		Values_Map: valuemap,
+		Keys_Map: keymap,
+		Cursor:cur,
+		DeltaX: bds.E - bds.W,
+		DeltaY: bds.N - bds.S,
+	},nil
+}

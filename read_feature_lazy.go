@@ -384,3 +384,53 @@ func (feature *Feature) LoadGeometryScaled(dim float64) (geomm *geojson.Geometry
 	geom2 := ConvertGeometry(geom, dim)
 	return geom2, err
 }
+
+
+
+
+// getting the last point of feature 
+func get_last_point(geom *geojson.Geometry) []float64 {
+	switch geom.Type {
+	case "Point":
+		return geom.Point 
+	case "MultiPoint":
+		if len(geom.MultiPoint) == 0 {
+			return []float64{}
+		}
+		return geom.MultiPoint[len(geom.MultiPoint)-1]
+
+	case "LineString":
+		if len(geom.LineString) == 0 {
+			return []float64{}
+		}
+		return geom.LineString[len(geom.LineString)-1]
+
+	case "MultiLineString":
+		if len(geom.MultiLineString) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.MultiLineString)-1
+		lm2 := len(geom.MultiLineString[lm])-1
+		return geom.MultiLineString[lm][lm2]
+
+	case "Polygon":
+		if len(geom.Polygon) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.Polygon)-1
+		lm2 := len(geom.Polygon[lm])-1
+		return geom.Polygon[lm][lm2]
+	
+
+	case "MultiPolygon":
+		if len(geom.MultiPolygon) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.MultiPolygon)-1
+		lm2 := len(geom.MultiPolygon[lm])-1
+		lm3 := len(geom.MultiPolygon[lm][lm2])-1
+		return geom.MultiPolygon[lm][lm2][lm3]
+	default:
+		return []float64{}
+	}
+}
