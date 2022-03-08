@@ -17,12 +17,18 @@ type Layer struct {
 	EndPos           int
 	feature_position int
 	Buf              *pbf.PBF
-}
+	keys_ind		[2]int
+	values_ind 		[2]int
+	keys_bool true
+}	
 
 // creates a new layer
 func (tile *Tile) NewLayer(endpos int) {
 	layer := &Layer{StartPos: tile.Buf.Pos, EndPos: endpos}
 	key, val := tile.Buf.ReadKey()
+	keys_bool := false 
+	vals_bool := false
+	layer.keys_ind = [2]int{-1,-1}
 	for tile.Buf.Pos < layer.EndPos {
 		if key == 1 && val == 2 {
 			layer.Name = tile.Buf.ReadString()
@@ -39,11 +45,29 @@ func (tile *Tile) NewLayer(endpos int) {
 			tile.Buf.Pos += feat_size
 			key, val = tile.Buf.ReadKey()
 		}
+		if key == 3 && val == 2 && !keys_bool {
+			keys_bool = true 
+			mypos := tile.layer.Buf.Pos 
+			layer.keys_ind[0] = mypos
+		}
+
+
 		// collecting all keys
 		for key == 3 && val == 2 {
 			layer.Keys = append(layer.Keys, tile.Buf.ReadString())
 			key, val = tile.Buf.ReadKey()
+			if (key == 3 && val == 2) {
+				layer.keys_ind[1] = tile.Buf.Pos 
+
+			}
 		}
+
+		if key == 4 && val == 2 && !vals_bool {
+			vals_bool = true 
+			mypos := tile.layer.Buf.Pos 
+			layer.keys_ind[0] = mypos
+		}
+
 		// collecting all values
 		for key == 4 && val == 2 {
 			//tile.Buf.Byte()
@@ -66,6 +90,10 @@ func (tile *Tile) NewLayer(endpos int) {
 				layer.Values = append(layer.Values, tile.Buf.ReadBool())
 			}
 			key, val = tile.Buf.ReadKey()
+			if !(key == 4 && val == 2 ) {
+				layer.values_ind[1] = tile.Buf.Pos 
+
+			}
 		}
 		if key == 5 && val == 0 {
 			layer.Extent = int(tile.Buf.ReadVarint())
@@ -94,3 +122,17 @@ func (layer *Layer) Next() bool {
 func (layer *Layer) Reset() {
 	layer.feature_position = 0
 }
+
+
+/*
+func (layer *Layer) WriteLayer(tileid m.TileID) *WriteLayer {
+
+	&LayerWrite{
+		Name:layer.Name,
+		Exten:layer.Extent,
+		Version:layer.Version,
+
+	}S
+|
+
+*/
