@@ -7,6 +7,7 @@ import (
 	"github.com/murphy214/pbf"
 	"github.com/paulmach/go.geojson"
 	"math"
+	//"fmt"
 )
 
 type Feature struct {
@@ -130,6 +131,13 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 	return feature, err
 }
 
+func (feature *Feature) GeomBytes() []byte {
+	feature.Buf.Pos = feature.geometry_pos
+	feature.Buf.ReadPackedUInt32()
+	//fmt.Println(feature.Buf.Pbf[feature.geometry_pos:feature.Buf.Pos])
+
+	return feature.Buf.Pbf[feature.geometry_pos:feature.Buf.Pos]
+}
 
 func (feature *Feature) LoadGeometryRaw() (geom []uint32, err error) {
 	defer func() {

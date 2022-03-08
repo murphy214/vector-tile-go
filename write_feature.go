@@ -88,6 +88,81 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	}
 }
 
+
+func (layer *LayerWrite) AddFeatureLazy(feature *Feature) {
+	// creating total bytes that holds the bytes for a given layer
+	var array1, array2, array3, array4, array5, array6, array7, array8, array9 []byte
+	// refreshing cursor
+	layer.RefreshCursor()
+
+	if feature.ID != 0 {
+		// do the id shit
+		array3 = []byte{8}
+		array4 = p.EncodeVarint(uint64(feature.ID))
+
+		// vv := reflect.ValueOf(feature.ID)
+		// kd := vv.Kind()
+		// switch kd {
+		// case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// 	array3 = []byte{8}
+		// 	array4 = p.EncodeVarint(uint64(vv.Int()))
+		// }
+	}
+
+	if len(feature.Properties) > 0 {
+		// do the tag shit here
+		array5 = []byte{18} // the key val
+		array6 = WritePackedUint32(layer.GetTags(feature.Properties))
+	}
+	array7 = []byte{24, byte(feature.Geom_int)}
+	
+	var abort_bool bool
+	array8 = []byte{34}
+	array9 = feature.GeomBytes()
+
+
+		// case "Point":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakePointFloat(feature.Geometry.Point)
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+		// case "LineString":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakeLineFloat(feature.Geometry.LineString)
+		// 	if layer.Cursor.Count == 0 {
+		// 		abort_bool = true
+		// 	}
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+		// case "Polygon":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakePolygonFloat(feature.Geometry.Polygon)
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+		// case "MultiPoint":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakeMultiPointFloat(feature.Geometry.MultiPoint)
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+		// case "MultiLineString":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakeMultiLineFloat(feature.Geometry.MultiLineString)
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+		// case "MultiPolygon":
+		// 	array8 = []byte{34}
+		// 	layer.Cursor.MakeMultiPolygonFloat(feature.Geometry.MultiPolygon)
+		// 	array9 = WritePackedUint32(layer.Cursor.Geometry)
+
+		// }
+
+	// on the off chane one of my lines contains one point
+	if !abort_bool {
+		array1 = []byte{18}
+		array2 = p.EncodeVarint(uint64(len(array3) + len(array4) + len(array5) + len(array6) + len(array7) + len(array8) + len(array9)))
+		layer.Features = append(layer.Features, AppendAll(array1, array2, array3, array4, array5, array6, array7, array8, array9)...)
+	
+	
+	} else {
+	}
+}
+
+
 // function for adding the feature for a raw implementation
 func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, properties map[string]interface{}) {
 	var array1, array2, array3, array4, array5, array6, array7, array8, array9 []byte
