@@ -18,6 +18,7 @@ type Feature struct {
 	extent       int
 	Geom_int     int
 	Buf          *pbf.PBF
+	FeaturePos int // the position the given feature is in 
 }
 
 func DeltaDim(num int) float64 {
@@ -127,6 +128,7 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 	}
 	feature.extent = layer.Extent
 	feature.Buf = layer.Buf
+	feature.FeaturePos = layer.feature_position
 	layer.feature_position += 1
 	return feature, err
 }

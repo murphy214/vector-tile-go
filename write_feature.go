@@ -5,6 +5,7 @@ import (
 	"reflect"
 	//"github.com/murphy214/geobuf/geobuf_raw"
 	p "github.com/murphy214/pbf"
+	"fmt"
 )
 
 // adding a geojson feature to a given layer
@@ -88,7 +89,7 @@ func (layer *LayerWrite) AddFeature(feature *geojson.Feature) {
 	}
 }
 
-
+// adds a lazy feature to the layer write as effeciently as possible
 func (layer *LayerWrite) AddFeatureLazy(feature *Feature) {
 	// creating total bytes that holds the bytes for a given layer
 	var array1, array2, array3, array4, array5, array6, array7, array8, array9 []byte
@@ -162,6 +163,17 @@ func (layer *LayerWrite) AddFeatureLazy(feature *Feature) {
 	}
 }
 
+// adds a list of lazy features to write to the  layerwrite this will be useful for filtering 
+func (laywrite *LayerWrite) AddFeaturesLazy(positions []int,srclayer *Layer) {
+	for _,pos := range positions {
+		feat,err := srclayer.FeaturePos(pos)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			laywrite.AddFeatureLazy(feat)
+		}
+	}
+}
 
 // function for adding the feature for a raw implementation
 func (layer *LayerWrite) AddFeatureRaw(id int, geomtype int, geometry []uint32, properties map[string]interface{}) {

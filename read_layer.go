@@ -24,6 +24,8 @@ type Layer struct {
 	values_ind 		[2]int
 	keys_bool,vals_bool bool
 }	
+
+
 var DEBUG = false
 // creates a new layer
 func (tile *Tile) NewLayer(endpos int) {
@@ -129,7 +131,6 @@ func (tile *Tile) NewLayer(endpos int) {
 		if (DEBUG) {
 			fmt.Println(key,val,tile.Buf.Pos,endpos)
 			time.Sleep(1*time.Second)
-
 		}
 	}
 
@@ -146,23 +147,17 @@ func (layer *Layer) Next() bool {
 	return layer.feature_position < layer.Number_Features
 }
 
+
+func (layer *Layer) FeaturePos(i int) (*Feature,error) {
+	layer.feature_position = i 
+	return layer.Feature()
+}
+
 func (layer *Layer) Reset() {
 	layer.feature_position = 0
 }
 
-
-/*
-func (layer *Layer) WriteLayer(tileid m.TileID) *WriteLayer {
-
-	&LayerWrite{
-		Name:layer.Name,
-		Exten:layer.Extent,
-		Version:layer.Version,
-
-	}S
-|
-
-*/
+// converts a lazy layer reader into a writer  
 func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 	// creating cursor 
 	cur := NewCursorExtent(tileid,4326)
@@ -237,4 +232,42 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 	}
 	
 	return layerwrite,nil
+}
+
+
+// filters layer 
+// a typical filterfunc might look something like this:
+// func filterfunc(layer *Layer) []int {
+// 	poss := []int{}
+// 	for layer.Next() {
+// 		feat,_ := layer.Feature()
+// 		fmt.Println(feat.FeaturePos)
+// 		if feat.FeaturePos%8==0 {
+// 			poss = append(poss,feat.FeaturePos)
+// 		}
+// 		fmt.Println(feat)
+// 	}
+// 	return poss
+// }
+func (layer *Layer) FilterLayer(tileid m.TileID,filterfunc func(lay *Layer) []int) ([]byte,error) {
+	layer2 := *layer
+	layw,err := layer2.ToLayerWrite(tileid)
+	if err != nil {
+		return []byte{},err
+	}
+
+	// resetting the entire layer write context
+	layw.Values_Bytes = []byte{}
+	layw.Values_Map = map[interface{}]uint32{}
+	layw.Keys_Bytes = []byte{}
+	layw.Keys_Map = map[string]uint32{}
+	layw.Features = []byte{}
+
+	// getting layer positions from the filter func
+	positions := filterfunc(layer)
+	
+	// writing the positions into the tile lazily 
+	layw.AddFeaturesLazy(positions,layer)
+
+	return layw.Flush(),nil
 }
