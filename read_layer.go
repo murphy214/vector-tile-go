@@ -237,7 +237,7 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 
 // filters layer 
 // a typical filterfunc might look something like this:
-// func filterfunc(layer *Layer) []int {
+// func filterfunc(layer *Layer,tileid m.TileID) []int {
 // 	poss := []int{}
 // 	for layer.Next() {
 // 		feat,_ := layer.Feature()
@@ -249,7 +249,7 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 // 	}
 // 	return poss
 // }
-func (layer *Layer) FilterLayer(tileid m.TileID,filterfunc func(lay *Layer) []int) ([]byte,error) {
+func (layer *Layer) FilterLayer(tileid m.TileID,filterfunc func(lay *Layer,tileid m.TileID) []int) ([]byte,error) {
 	layer2 := *layer
 	layw,err := layer2.ToLayerWrite(tileid)
 	if err != nil {
@@ -264,7 +264,7 @@ func (layer *Layer) FilterLayer(tileid m.TileID,filterfunc func(lay *Layer) []in
 	layw.Features = []byte{}
 
 	// getting layer positions from the filter func
-	positions := filterfunc(layer)
+	positions := filterfunc(layer,tileid)
 	
 	// writing the positions into the tile lazily 
 	layw.AddFeaturesLazy(positions,layer)
