@@ -32,7 +32,7 @@ type Config struct {
 	Extent     int32    // extent will assume 4096 if 0
 	Version    int      // version number will assume 15 if 0
 	ReduceBool bool
-	ExtentBool bool
+	ExtentBool bool 	// the extent bool that determines if all points should fall within the tile bound
 }
 
 // creates a new layer

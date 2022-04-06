@@ -292,6 +292,25 @@ func (cur *Cursor) SinglePoint(point []float64) []int32 {
 	xval := int32(factorx * float64(cur.Extent))
 	yval := int32(factory * float64(cur.Extent))
 
+	// this code ensures if your configuration is specified  
+	// that a single point will not be outside the extent of a tile 
+	if cur.ExtentBool {
+		if xval >= cur.Extent {
+			xval = cur.Extent
+		}
+
+		if yval >= cur.Extent {
+			yval = cur.Extent
+		}
+
+		if xval < 0 {
+			xval = 0
+		}
+		if yval < 0 {
+			yval = 0
+		}
+	}
+
 	return []int32{xval, yval}
 }
 
