@@ -1,12 +1,13 @@
 package vt
 
 import (
-	m "github.com/murphy214/mercantile"
 	"math"
-	//pc "github.com/murphy214/polyclip"
+
+	m "github.com/murphy214/mercantile"
+	// pc "github.com/murphy214/polyclip"
 )
 
-const mercatorPole = 20037508.34
+const mercatorPole = math.Pi * 6378137 // radius at the equator
 
 type Cursor struct {
 	Geometry   []uint32
@@ -32,6 +33,7 @@ func TrimPolygonFloat(lines [][][]float64) [][][]float64 {
 	}
 	return lines
 }
+
 func TrimPolygon(lines [][][]int32) [][][]int32 {
 	for pos, line := range lines {
 		f, l := line[0], line[len(line)-1]
@@ -148,10 +150,10 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	for _, point := range coords[1:] {
 		cur.LinePoint(cur.SinglePoint(point))
 	}
-	//fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
+	// fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
 	cur.Geometry[startpos+3] = lineTo(cur.Count)
 
-	//return cur.Geometry
+	// return cur.Geometry
 
 }
 
@@ -195,7 +197,6 @@ func assert_winding_order(coord [][]int32, exp_orient string) [][]int32 {
 		return coord
 	}
 	return coord
-
 }
 
 // asserts a winding order
@@ -205,7 +206,7 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	weight := 0.0
 	var oldpt []int32
 	newlist := make([][]int32, len(coord))
-	//newlist := [][]int32{firstpt}
+	// newlist := [][]int32{firstpt}
 	newlist[0] = firstpt
 	// iterating through each float point
 	for pos, floatpt := range coord[1:] {
@@ -237,7 +238,6 @@ func (cur *Cursor) AssertConvert(coord [][]float64, exp_orient string) {
 	newgeom = append(newgeom, closePath(1))
 	cur.Geometry = append(cur.Geometry, newgeom...)
 	cur.LastPoint = newlist[len(newlist)-1]
-
 }
 
 // makes a polygon
@@ -248,7 +248,7 @@ func (cur *Cursor) MakePolygon(coords [][][]int32) []uint32 {
 	coord := coords[0]
 	coord = assert_winding_order(coord, "clockwise")
 	cur.MakeLine(coord)
-	//cur.Geometry = append(cur.Geometry, cur.Geometry...)
+	// cur.Geometry = append(cur.Geometry, cur.Geometry...)
 	cur.Geometry = append(cur.Geometry, closePath(1))
 	// if multiple rings exist proceed to add those also
 	if len(coords) > 1 {
@@ -276,10 +276,9 @@ func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 	if len(coords) > 1 {
 		for _, coord := range coords[1:] {
 			cur.AssertConvert(coord, "counter")
-
 		}
 	}
-	//return cur.Geometry
+	// return cur.Geometry
 }
 
 // converts a single point from a coordinate to a tile point
@@ -330,7 +329,6 @@ func (cur *Cursor) MakePointFloat(point []float64) {
 	coords := []int32{newpoint[0], newpoint[1]}
 	cur.Geometry = []uint32{moveTo(uint32(1))}
 	cur.LinePoint(coords)
-
 }
 
 func (cur *Cursor) MakePoint(point []int32) {
@@ -366,14 +364,14 @@ func (cur *Cursor) MakeMultiLine(lines [][][]int32) {
 }
 
 func (cur *Cursor) MakeMultiPolygonFloat(lines [][][][]float64) {
-	//lines = TrimMultiPolygonFloat(lines)
+	// lines = TrimMultiPolygonFloat(lines)
 	for _, line := range lines {
 		cur.MakePolygonFloat(line)
 	}
 }
 
 func (cur *Cursor) MakeMultiPolygon(lines [][][][]int32) {
-	//lines = TrimMultiPolygon(lines)
+	// lines = TrimMultiPolygon(lines)
 
 	for _, line := range lines {
 		cur.MakePolygon(line)
