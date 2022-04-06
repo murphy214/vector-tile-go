@@ -154,7 +154,6 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	cur.Geometry[startpos+3] = lineTo(cur.Count)
 
 	// return cur.Geometry
-
 }
 
 // reverses the coord list
@@ -283,42 +282,15 @@ func (cur *Cursor) MakePolygonFloat(coords [][][]float64) {
 
 // converts a single point from a coordinate to a tile point
 func (cur *Cursor) SinglePoint(point []float64) []int32 {
-	if cur.Bounds.N < point[1] {
-		cur.Bounds.N = point[1]
-	} else if cur.Bounds.S > point[1] {
-		cur.Bounds.S = point[1]
-	}
-	if cur.Bounds.E < point[0] {
-		cur.Bounds.E = point[0]
-	} else if cur.Bounds.W > point[0] {
-		cur.Bounds.W = point[0]
-	}
 	// converting to sperical coordinates
 	point = ConvertPoint(point)
 
-	// getting factors to multiply by
+	// getting factors to multiply by (0 <= factor <= 1)
 	factorx := (point[0] - cur.Bounds.W) / cur.DeltaX
 	factory := (cur.Bounds.N - point[1]) / cur.DeltaY
 
 	xval := int32(factorx * float64(cur.Extent))
 	yval := int32(factory * float64(cur.Extent))
-
-	if cur.ExtentBool {
-		if xval >= cur.Extent {
-			xval = cur.Extent
-		}
-
-		if yval >= cur.Extent {
-			yval = cur.Extent
-		}
-
-		if xval < 0 {
-			xval = 0
-		}
-		if yval < 0 {
-			yval = 0
-		}
-	}
 
 	return []int32{xval, yval}
 }
