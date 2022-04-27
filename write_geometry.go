@@ -149,7 +149,13 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 		cur.LinePoint(cur.SinglePoint(point))
 	}
 	//fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
-	cur.Geometry[startpos+3] = lineTo(cur.Count)
+	
+	if (cur.Count>0) {
+		cur.Geometry[startpos+3] = lineTo(cur.Count)
+	} else {
+		cur.Geometry = cur.Geometry[:startpos]
+	}
+
 
 	//return cur.Geometry
 
