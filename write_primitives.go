@@ -206,7 +206,7 @@ func WriteValue(value interface{}) []byte {
 	// switching for each type
 	switch kd {
 	case reflect.String:
-		if len(vv.String()) > 0 {
+		if len(vv.String()) >= 0 {
 			size := uint64(len(vv.String()))
 			size_bytes := pbf.EncodeVarint(size)
 			bytevals := []byte{10}
@@ -229,6 +229,14 @@ func WriteValue(value interface{}) []byte {
 		} else if vv.Bool() == false {
 			return []byte{34, 2, 56, 0}
 		}
+	default: 
+		size := uint64(len(""))
+		size_bytes := pbf.EncodeVarint(size)
+		bytevals := []byte{10}
+		bytevals = append(bytevals, size_bytes...)
+		bytevals = append(bytevals, []byte("")...)
+		bytevals = append(pbf.EncodeVarint(uint64(len(bytevals))), bytevals...)
+		return append([]byte{34}, bytevals...)
 	}
 
 	return []byte{}

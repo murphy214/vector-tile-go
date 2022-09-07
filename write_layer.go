@@ -205,7 +205,7 @@ func (mylayer *LayerWrite) Flush() []byte {
 	total_bytes = append(total_bytes, 120)
 	total_bytes = append(total_bytes, byte(mylayer.Version))
 	//}
-
+	//fmt.Println(total_bytes[len(total_bytes)-5:])
 	beg := append([]byte{26}, pbf.EncodeVarint(uint64(len(total_bytes)))...)
 	return append(beg, total_bytes...)
 }

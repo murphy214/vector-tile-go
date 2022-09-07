@@ -4,6 +4,7 @@ import (
 	//"fmt"
 	m "github.com/murphy214/mercantile"
 	"github.com/paulmach/go.geojson"
+	"math"
 )
 
 var default_steps = 8
@@ -42,7 +43,7 @@ func NewReduceConfig(tileid m.TileID) *Reduce_Config {
 // BoundingBox defaults "bbox": [-180.0, -90.0, 180.0, 90.0]
 func BoundingBox_Points(pts [][]float64) []float64 {
 	// setting opposite default values
-	west, south, east, north := 180.0, 90.0, -180.0, -90.0
+	west, south, east, north := float64(math.Inf(1)), float64(math.Inf(1)),float64(math.Inf(-1)),float64(math.Inf(-1))
 
 	for _, pt := range pts {
 		x, y := pt[0], pt[1]
@@ -50,13 +51,16 @@ func BoundingBox_Points(pts [][]float64) []float64 {
 		// using else if reduces one comparison
 		if x < west {
 			west = x
-		} else if x > east {
+		
+		}
+		if x > east {
 			east = x
 		}
 
 		if y < south {
 			south = y
-		} else if y > north {
+		}
+		if y > north {
 			north = y
 		}
 	}
@@ -65,7 +69,7 @@ func BoundingBox_Points(pts [][]float64) []float64 {
 
 func Push_Two_BoundingBoxs(bb1 []float64, bb2 []float64) []float64 {
 	// setting opposite default values
-	west, south, east, north := 180.0, 90.0, -180.0, -90.0
+	west, south, east, north := float64(math.Inf(1)), float64(math.Inf(1)),float64(math.Inf(-1)),float64(math.Inf(-1))
 
 	// setting bb1 and bb2
 	west1, south1, east1, north1 := bb1[0], bb1[1], bb1[2], bb1[3]

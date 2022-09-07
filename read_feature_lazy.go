@@ -7,6 +7,7 @@ import (
 	"github.com/murphy214/pbf"
 	"github.com/paulmach/go.geojson"
 	"math"
+	//"fmt"
 )
 
 type Feature struct {
@@ -17,6 +18,7 @@ type Feature struct {
 	extent       int
 	Geom_int     int
 	Buf          *pbf.PBF
+	FeaturePos int // the position the given feature is in 
 }
 
 func DeltaDim(num int) float64 {
@@ -126,10 +128,18 @@ func (layer *Layer) Feature() (feature *Feature, err error) {
 	}
 	feature.extent = layer.Extent
 	feature.Buf = layer.Buf
+	feature.FeaturePos = layer.feature_position
 	layer.feature_position += 1
 	return feature, err
 }
 
+func (feature *Feature) GeomBytes() []byte {
+	feature.Buf.Pos = feature.geometry_pos
+	feature.Buf.ReadPackedUInt32()
+	//fmt.Println(feature.Buf.Pbf[feature.geometry_pos:feature.Buf.Pos])
+
+	return feature.Buf.Pbf[feature.geometry_pos:feature.Buf.Pos]
+}
 
 func (feature *Feature) LoadGeometryRaw() (geom []uint32, err error) {
 	defer func() {
@@ -383,4 +393,54 @@ func (feature *Feature) LoadGeometryScaled(dim float64) (geomm *geojson.Geometry
 	geom, err := feature.LoadGeometry()
 	geom2 := ConvertGeometry(geom, dim)
 	return geom2, err
+}
+
+
+
+
+// getting the last point of feature 
+func get_last_point(geom *geojson.Geometry) []float64 {
+	switch geom.Type {
+	case "Point":
+		return geom.Point 
+	case "MultiPoint":
+		if len(geom.MultiPoint) == 0 {
+			return []float64{}
+		}
+		return geom.MultiPoint[len(geom.MultiPoint)-1]
+
+	case "LineString":
+		if len(geom.LineString) == 0 {
+			return []float64{}
+		}
+		return geom.LineString[len(geom.LineString)-1]
+
+	case "MultiLineString":
+		if len(geom.MultiLineString) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.MultiLineString)-1
+		lm2 := len(geom.MultiLineString[lm])-1
+		return geom.MultiLineString[lm][lm2]
+
+	case "Polygon":
+		if len(geom.Polygon) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.Polygon)-1
+		lm2 := len(geom.Polygon[lm])-1
+		return geom.Polygon[lm][lm2]
+	
+
+	case "MultiPolygon":
+		if len(geom.MultiPolygon) == 0 {
+			return []float64{}
+		}
+		lm := len(geom.MultiPolygon)-1
+		lm2 := len(geom.MultiPolygon[lm])-1
+		lm3 := len(geom.MultiPolygon[lm][lm2])-1
+		return geom.MultiPolygon[lm][lm2][lm3]
+	default:
+		return []float64{}
+	}
 }
