@@ -85,7 +85,7 @@ func (layer *LayerWrite) AddKey(key string) uint32 {
 
 // adds a single value to a given
 func (layer *LayerWrite) AddValue(value interface{}) uint32 {
-	layer.Values_Bytes = append(layer.Values_Bytes, WriteValue(value)...)
+	layer.Values_Bytes = append(layer.Values_Bytes, pbf.WriteValue(value)...)
 	myint := uint32(len(layer.Values_Map))
 	layer.Values_Map[value] = myint
 	return myint
