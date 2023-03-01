@@ -150,18 +150,12 @@ func (cur *Cursor) MakeLineFloat(coords [][]float64) {
 	for _, point := range coords[1:] {
 		cur.LinePoint(cur.SinglePoint(point))
 	}
-	// fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
-	// cur.Geometry[startpos+3] = lineTo(cur.Count)
-	//fmt.Println(lineTo(cur.Count), coords, cur.Count, len(coords), cur.Geometry)
 	
 	if (cur.Count>0) {
 		cur.Geometry[startpos+3] = lineTo(cur.Count)
 	} else {
 		cur.Geometry = cur.Geometry[:startpos]
 	}
-
-
-	// return cur.Geometry
 }
 
 // reverses the coord list

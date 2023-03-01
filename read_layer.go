@@ -165,6 +165,7 @@ func (layer *Layer) Reset() {
 	layer.feature_position = 0
 }
 
+// takes a lazy reader struct and converts into a writer 
 func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 	myvals := layer.values_ind  
 	myvals2 := layer.keys_ind 
