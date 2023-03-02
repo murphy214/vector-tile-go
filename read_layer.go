@@ -249,34 +249,12 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 		Keys_Map: map[string]uint32{},
 	}
 
-
-	// creating the keys map
-	//keymap := map[string]uint32{}
-
-	// for _,key := range layer.Keys {
-	// 	//keymap[key] = uint32(pos)
-	// 	layerwrite.AddKey(key)
-	// }
-	
-	// // creeating values map
-	// //valuemap := map[interface{}]uint32{}
-	// for _,value := range layer.Values {
-	// 	//valuemap[value] = uint32(pos)
-	// 	layerwrite.AddValue(value)
-	// }
-	
 	if (size_key!=0&&size_val!=0) {
 		layerwrite.Values_Bytes = value_bytes
 		layerwrite.Keys_Bytes = key_bytes
 		layerwrite.Keys_Map = keymap
 		layerwrite.Values_Map = valuemap 
 	}
-
-	// fmt.Println(layerwrite.Values_Bytes[0],value_bytes[0],layerwrite.Values_Bytes[len(layerwrite.Values_Bytes)-1],value_bytes[len(value_bytes)-1])
-	// for pos := range layerwrite.Values_Bytes {
-	// 	fmt.Println(layerwrite.Values_Bytes[pos],value_bytes[pos],len(layerwrite.Values_Bytes),len(value_bytes))
-	// }
-	// fmt.Println(layerwrite.Keys_Bytes[0],key_bytes[0],layerwrite.Keys_Bytes[len(layerwrite.Keys_Bytes)-1],key_bytes[len(key_bytes)-1])
 	return layerwrite,nil
 }
 
