@@ -173,6 +173,7 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 	keys,keye := myvals2[0],myvals2[1]
 	size_val := vale-vals
 	size_key := keye-keys
+	feat_bytes := []byte{}
 
 	// sval,eval := layer.Buf.Pbf[myvals[0]-1:myvals[0]+1],layer.Buf.Pbf[myvals[1]-2:myvals[1]+1]
 	value_bytes := []byte{}
@@ -184,7 +185,7 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 		key_bytes = layer.Buf.Pbf[myvals2[0]-1:myvals2[1]-1]
 
 		// fmt.Println(value_bytes[0],value_bytes[len(value_bytes)-1])
-
+		
 		for pos,key := range layer.Keys {
 			keymap[key] = uint32(pos) 
 		}
@@ -193,44 +194,43 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 		}
 	}
 	// creating cursor 
-	cur := NewCursorExtent(tileid,4326)
-	
+	// cur := NewCursorExtent(tileid,4326)
+
 	// getting the last feature 
-	var feat_bytes []byte
-	layer.feature_position = layer.Number_Features-1
-	if layer.Number_Features>0 {
-		feat,err := layer.Feature()
-		if err != nil {
-			return nil,err
-		}
+	// var feat_bytes []byte
+	// layer.feature_position = layer.Number_Features-1
+	// if layer.Number_Features>0 {
+	// 	feat,err := layer.Feature()
+	// 	if err != nil {
+	// 		return nil,err
+	// 	}
 		
-		geom,err := feat.LoadGeometry()
-		if err != nil {
-			return nil,err
-		}
+	// 	geom,err := feat.LoadGeometry()
+	// 	if err != nil {
+	// 		return nil,err
+	// 	}
 	
-		last_pt := get_last_point(geom)
-		if len(last_pt) == 2 {
-			cur.LastPoint = []int32{int32(last_pt[0]),int32(last_pt[1])}
-		}
-		//fmt.Println(cur,get_last_point(geom),"we here")
-	
-		// getting the bytes assocated with features
-		if len(layer.features) > 0 {
-			start_pos := layer.features[0] 
+	// 	last_pt := get_last_point(geom)
+	// 	if len(last_pt) == 2 {
+	// 		cur.LastPoint = []int32{int32(last_pt[0]),int32(last_pt[1])}
+	// 	}
+	// 	//fmt.Println(cur,get_last_point(geom),"we here")
+	// 	// getting the bytes assocated with features
+	// 	if len(layer.features) > 0 {
+	// 		// start_pos := layer.features[0] 
 			
-			layer.Buf.Pos = layer.features[len(layer.features)-1]
-			//layer.Buf.Pos = layer.features[len(layer.features)-1]
-			//fmt.Println(layer.Buf.Pos,layer.Buf.Pos,layer.Buf.Pbf[layer.Buf.Pos-3:layer.Buf.Pos+25],layer.Buf.Pbf[layer.Buf.Pos])
-	
-			end_pos := layer.Buf.Pos + int(layer.Buf.ReadVarint())
-			feat_bytes = layer.Buf.Pbf[start_pos-1:end_pos]
-			//fmt.Println(feat_bytes)
-			//fmt.Println(start_pos,layer.Buf.Pos,layer.Buf.Pbf[start_pos-3:start_pos+3],layer.Buf.Pbf[start_pos])
-		} else {
-			feat_bytes = []byte{}
-		}
-	}
+	// 		// layer.Buf.Pos = layer.features[len(layer.features)-1]
+	// 		// //layer.Buf.Pos = layer.features[len(layer.features)-1]
+	// 		// //fmt.Println(layer.Buf.Pos,layer.Buf.Pos,layer.Buf.Pbf[layer.Buf.Pos-3:layer.Buf.Pos+25],layer.Buf.Pbf[layer.Buf.Pos])
+	// 		// feat_bytes := []byte{}
+	// 		// end_pos := layer.Buf.Pos + int(layer.Buf.ReadVarint())
+	// 		// feat_bytes = layer.Buf.Pbf[start_pos-1:end_pos]
+	// 		// //fmt.Println(feat_bytes)
+	// 		// //fmt.Println(start_pos,layer.Buf.Pos,layer.Buf.Pbf[start_pos-3:start_pos+3],layer.Buf.Pbf[start_pos])
+	// 	} else {
+	// 		// feat_bytes := []byte{}
+	// 	}
+	// }
 
 	bds := m.Bounds(tileid)
 
@@ -240,7 +240,7 @@ func (layer *Layer) ToLayerWrite(tileid m.TileID) (*LayerWrite,error) {
 		Version:layer.Version,
 		TileID:tileid,
 		Features: feat_bytes,
-		Cursor:cur,
+		Cursor:NewCursor(tileid),
 		DeltaX: bds.E - bds.W,
 		DeltaY: bds.N - bds.S,
 		Keys_Bytes: []byte{},
